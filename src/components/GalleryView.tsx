@@ -69,11 +69,13 @@ export default function GalleryView({
           onClick={() => setIsModalOpen(true)}
           className={`aspect-square rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center border-2 border-dashed ${
             darkMode
-              ? 'border-gray-600 hover:border-gray-500 bg-gray-800/50'
-              : 'border-gray-300 hover:border-gray-400 bg-white/50'
+              ? "border-gray-600 hover:border-gray-500 bg-gray-800/50"
+              : "border-gray-300 hover:border-gray-400 bg-white/50"
           }`}
         >
-          <Plus className={`w-12 h-12 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+          <Plus
+            className={`w-12 h-12 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+          />
         </button>
 
         {/* Ideas */}
@@ -86,51 +88,82 @@ export default function GalleryView({
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, index)}
             onDragEnd={handleDragEnd}
-            className={`aspect-square rounded-xl shadow-sm hover:shadow-md transition-all cursor-move relative group ${
-              draggedIndex === index ? 'opacity-50' : ''
-            } ${
-              dragOverIndex === index ? 'ring-2 ring-purple-500' : ''
-            }`}
-            style={{
-              background: darkMode
-                ? 'rgba(31, 41, 55, 0.7)'
-                : 'rgba(255, 255, 255, 0.7)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              border: darkMode
-                ? '1px solid rgba(75, 85, 99, 0.3)'
-                : '1px solid rgba(229, 231, 235, 0.5)',
-            }}
+            className={`aspect-square rounded-xl shadow-sm hover:shadow-md transition-all cursor-move relative group p-[2px] bg-gradient-to-br from-purple-200 to-pink-200 ${
+              draggedIndex === index ? "opacity-50" : ""
+            } ${dragOverIndex === index ? "ring-2 ring-purple-500" : ""}`}
           >
-            {/* Drag handle */}
-            <div className={`absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-              darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-              <GripVertical className="w-4 h-4" />
-            </div>
-
-            {/* Delete button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteIdea(idea.id);
+            <div
+              className="w-full h-full rounded-[10px] relative"
+              style={{
+                background: darkMode
+                  ? "rgba(31, 41, 55, 0.7)"
+                  : "rgba(255, 255, 255, 0.7)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
               }}
-              className={`absolute top-2 left-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                darkMode 
-                  ? 'text-gray-400 hover:text-red-400 bg-gray-700/50 hover:bg-gray-700' 
-                  : 'text-gray-500 hover:text-red-500 bg-gray-100/50 hover:bg-gray-200'
-              }`}
             >
-              <X className="w-4 h-4" />
-            </button>
+              {/* Drag handle */}
+              <div
+                className={`absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                  darkMode
+                    ? "text-gray-400 hover:text-gray-300"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <GripVertical className="w-4 h-4" />
+              </div>
 
-            {/* Idea text */}
-            <div className="p-4 h-full flex items-center justify-center">
-              <p className={`text-sm text-center line-clamp-6 ${
-                darkMode ? 'text-gray-200' : 'text-gray-800'
-              }`}>
-                {idea.text}
-              </p>
+              {/* Delete button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteIdea(idea.id);
+                }}
+                className={`absolute top-2 left-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                  darkMode
+                    ? "text-gray-400 hover:text-red-400 bg-gray-700/50 hover:bg-gray-700"
+                    : "text-gray-500 hover:text-red-500 bg-gray-100/50 hover:bg-gray-200"
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Drag handle */}
+              <div
+                className={`absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 ${
+                  darkMode
+                    ? "text-gray-400 hover:text-gray-300"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <GripVertical className="w-4 h-4" />
+              </div>
+
+              {/* Delete button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteIdea(idea.id);
+                }}
+                className={`absolute top-2 left-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 ${
+                  darkMode
+                    ? "text-gray-400 hover:text-red-400 bg-gray-700/50 hover:bg-gray-700"
+                    : "text-gray-500 hover:text-red-500 bg-gray-100/50 hover:bg-gray-200"
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Idea text */}
+              <div className="p-4 h-full flex items-center justify-center">
+                <p
+                  className={`text-sm text-center line-clamp-6 ${
+                    darkMode ? "text-gray-200" : "text-gray-800"
+                  }`}
+                >
+                  {idea.text}
+                </p>
+              </div>
             </div>
           </div>
         ))}
