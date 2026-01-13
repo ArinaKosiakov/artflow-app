@@ -1,0 +1,82 @@
+{
+  "app": {
+    "name": "ArtFlow",
+    "subtitle": "Creative Studio"
+  },
+  "sidebar": {
+    "projects": "Projects",
+    "contentCalendar": "Content Calendar",
+    "aiAssistant": "AI Assistant",
+    "ideasPrompts": "Ideas & Prompts",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode"
+  },
+  "header": {
+    "artProjects": "Art Projects",
+    "contentCalendar": "Content Calendar",
+    "aiAssistant": "AI Assistant",
+    "ideasPrompts": "Ideas & Prompts",
+    "projectsDescription": "Manage your creative projects and track progress",
+    "contentDescription": "Plan and schedule your social media content",
+    "aiDescription": "Get AI-powered help with prompts and ideas",
+    "galleryDescription": "Save prompts and jot down quick ideas",
+    "newProject": "New Project",
+    "newContent": "New Content"
+  },
+  "projects": {
+    "noProjects": "No projects yet. Create your first one!",
+    "due": "Due:",
+    "progress": "Progress",
+    "addProject": {
+      "title": "Add New Project",
+      "projectTitle": "Project Title",
+      "description": "Description",
+      "deadline": "Deadline",
+      "status": "Status",
+      "steps": "Steps",
+      "addStep": "Add Step",
+      "removeStep": "Remove",
+      "stepPlaceholder": "Enter a step...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "statusOptions": {
+        "notStarted": "Not Started",
+        "inProgress": "In Progress",
+        "completed": "Completed"
+      }
+    }
+  },
+  "content": {
+    "addContent": {
+      "title": "Add New Content",
+      "contentTitle": "Content Title",
+      "platform": "Platform",
+      "deadline": "Deadline",
+      "details": "Details",
+      "detailsPlaceholder": "Enter content details...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "platformOptions": {
+        "youtube": "YouTube",
+        "tiktok": "TikTok",
+        "instagram": "Instagram",
+        "twitter": "Twitter",
+        "facebook": "Facebook"
+      }
+    }
+  },
+  "ai": {
+    "placeholder": "Ask for prompt ideas, techniques, or creative advice...",
+    "send": "Send",
+    "welcomeMessage": "Hello! I'm your AI art assistant. I can help you generate prompts, brainstorm ideas, or discuss art techniques. What are you working on today?"
+  },
+  "gallery": {
+    "addIdea": {
+      "title": "Add New Idea",
+      "text": "Idea Text",
+      "placeholder": "Enter your idea or prompt...",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
+  }
+}
