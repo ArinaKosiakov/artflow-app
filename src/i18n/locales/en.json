@@ -9,7 +9,10 @@
     "aiAssistant": "AI Assistant",
     "ideasPrompts": "Ideas & Prompts",
     "lightMode": "Light Mode",
-    "darkMode": "Dark Mode"
+    "darkMode": "Dark Mode",
+    "profile": "Profile",
+    "logout": "Logout",
+    "version": "Version"
   },
   "header": {
     "artProjects": "Art Projects",
@@ -77,6 +80,77 @@
       "placeholder": "Enter your idea or prompt...",
       "cancel": "Cancel",
       "save": "Save"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "subtitle": "Welcome to ArtFlow",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Sign up",
+      "emailPlaceholder": "name@example.com",
+      "passwordPlaceholder": "Enter your password"
+    },
+    "register": {
+      "title": "Sign Up",
+      "subtitle": "Create your ArtFlow account",
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Sign Up",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Login",
+      "namePlaceholder": "Your name",
+      "emailPlaceholder": "name@example.com",
+      "passwordPlaceholder": "Minimum 8 characters",
+      "confirmPasswordPlaceholder": "Re-enter password"
+    },
+    "errors": {
+      "emailRequired": "Email is required",
+      "passwordRequired": "Password is required",
+      "nameRequired": "Name is required",
+      "passwordMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "invalidEmail": "Invalid email address"
+    }
+  },
+  "profile": {
+    "title": "Profile Settings",
+    "profilePicture": "Profile Picture",
+    "changePicture": "Change Picture",
+    "removePicture": "Remove Picture",
+    "name": "Name",
+    "namePlaceholder": "Enter your name",
+    "currentEmail": "Current Email",
+    "newEmail": "New Email",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "changeEmail": "Change Email",
+    "changePassword": "Change Password",
+    "save": "Save",
+    "cancel": "Cancel",
+    "emailPlaceholder": "new@email.com",
+    "passwordPlaceholder": "Enter new password",
+    "currentPasswordPlaceholder": "Enter current password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "emailUpdated": "Email updated successfully",
+    "passwordUpdated": "Password updated successfully",
+    "pictureUpdated": "Profile picture updated successfully",
+    "errors": {
+      "nameRequired": "Name is required",
+      "emailRequired": "Email is required",
+      "currentPasswordRequired": "Current password is required",
+      "newPasswordRequired": "New password is required",
+      "passwordMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "invalidEmail": "Invalid email address",
+      "sameEmail": "New email must be different from current email",
+      "samePassword": "New password must be different from current password"
     }
   }
 }

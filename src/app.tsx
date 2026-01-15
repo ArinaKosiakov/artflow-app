@@ -7,15 +7,42 @@ import ProjectsView from "./pages/ProjectsView";
 import ContentView from "./pages/ContentView";
 import AiAssistantView from "./pages/AiAssistantView";
 import GalleryView from "./components/GalleryView";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ProfileModal from "./components/ProfileModal";
+
+// App version from package.json
+const APP_VERSION = "1.0.0";
 
 export default function App() {
   const { t } = useTranslation();
   //1-projects 2-content 3-ai 4-prompts
   const [activeTab, setActiveTab] = useState("projects");
-  
+
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Check if user is authenticated (for now just check localStorage)
+    return localStorage.getItem("isAuthenticated") === "true";
+  });
+  const [authPage, setAuthPage] = useState<"login" | "register">("login");
+
+  // User profile state
+  const [userEmail, setUserEmail] = useState(() => {
+    return localStorage.getItem("userEmail") || "";
+  });
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem("userName") || "";
+  });
+  const [userProfilePicture, setUserProfilePicture] = useState<string | null>(
+    () => {
+      return localStorage.getItem("userProfilePicture") || null;
+    }
+  );
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
   // Load dark mode from localStorage on initial render
   const [darkMode, setDarkMode] = useState(() => {
-    const savedDarkMode = localStorage.getItem('darkMode');
+    const savedDarkMode = localStorage.getItem("darkMode");
     return savedDarkMode ? JSON.parse(savedDarkMode) : false;
   });
   const [projects, setProjects] = useState([
@@ -66,7 +93,7 @@ export default function App() {
   ]);
 
   // Convert prompts to ideas format (only id and text)
-  const ideas = prompts.map(p => ({ id: p.id, text: p.text }));
+  const ideas = prompts.map((p) => ({ id: p.id, text: p.text }));
 
   const [quickNotes, setQuickNotes] = useState([
     {
@@ -85,10 +112,9 @@ export default function App() {
 
   const [chatInput, setChatInput] = useState("");
 
-
   // Save dark mode to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
   useEffect(() => {
@@ -129,18 +155,21 @@ export default function App() {
     );
   };
 
-  const addProject = (project: Omit<typeof projects[0], 'id'>) => {
+  const addProject = (project: Omit<(typeof projects)[0], "id">) => {
     const newProject = {
       ...project,
-      id: projects.length > 0 ? Math.max(...projects.map(p => p.id)) + 1 : 1,
+      id: projects.length > 0 ? Math.max(...projects.map((p) => p.id)) + 1 : 1,
     };
     setProjects([...projects, newProject]);
   };
 
-  const addContent = (content: Omit<typeof contentIdeas[0], 'id'>) => {
+  const addContent = (content: Omit<(typeof contentIdeas)[0], "id">) => {
     const newContent = {
       ...content,
-      id: contentIdeas.length > 0 ? Math.max(...contentIdeas.map(c => c.id)) + 1 : 1,
+      id:
+        contentIdeas.length > 0
+          ? Math.max(...contentIdeas.map((c) => c.id)) + 1
+          : 1,
     };
     setContentIdeas([...contentIdeas, newContent]);
   };
@@ -155,27 +184,9 @@ export default function App() {
     );
   };
 
-  const addQuickNote = () => {
-    if (newNote.trim()) {
-      setQuickNotes([
-        {
-          id: Date.now(),
-          text: newNote,
-          date: new Date().toISOString().split("T")[0],
-        },
-        ...quickNotes,
-      ]);
-      setNewNote("");
-    }
-  };
-
-  const deleteNote = (id: number) => {
-    setQuickNotes(quickNotes.filter((n) => n.id !== id));
-  };
-
   const addIdea = (text: string) => {
     const newPrompt = {
-      id: prompts.length > 0 ? Math.max(...prompts.map(p => p.id)) + 1 : 1,
+      id: prompts.length > 0 ? Math.max(...prompts.map((p) => p.id)) + 1 : 1,
       title: "",
       text: text,
       saved: new Date().toISOString().split("T")[0],
@@ -187,19 +198,134 @@ export default function App() {
     setPrompts(prompts.filter((p) => p.id !== id));
   };
 
-  const reorderIdeas = (reorderedIdeas: Array<{ id: number; text: string }>) => {
+  const reorderIdeas = (
+    reorderedIdeas: Array<{ id: number; text: string }>
+  ) => {
     // Map the reordered ideas back to prompts, preserving other properties
-    const reorderedPrompts = reorderedIdeas.map(idea => {
-      const originalPrompt = prompts.find(p => p.id === idea.id);
-      return originalPrompt || {
-        id: idea.id,
-        title: "",
-        text: idea.text,
-        saved: new Date().toISOString().split("T")[0],
-      };
+    const reorderedPrompts = reorderedIdeas.map((idea) => {
+      const originalPrompt = prompts.find((p) => p.id === idea.id);
+      return (
+        originalPrompt || {
+          id: idea.id,
+          title: "",
+          text: idea.text,
+          saved: new Date().toISOString().split("T")[0],
+        }
+      );
     });
     setPrompts(reorderedPrompts);
   };
+
+  // Authentication handlers (mock for now - will be replaced with API calls)
+  const handleLogin = async (email: string, password: string) => {
+    // TODO: Replace with actual API call
+    console.log("Login attempt:", { email, password });
+
+    // Mock authentication - for now just set authenticated
+    // In production, this will call the backend API
+    localStorage.setItem("isAuthenticated", "true");
+    localStorage.setItem("userEmail", email);
+    setUserEmail(email);
+    setIsAuthenticated(true);
+  };
+
+  const handleRegister = async (
+    name: string,
+    email: string,
+    password: string
+  ) => {
+    // TODO: Replace with actual API call
+    console.log("Register attempt:", { name, email, password });
+
+    // Mock registration - for now just set authenticated
+    // In production, this will call the backend API
+    localStorage.setItem("isAuthenticated", "true");
+    localStorage.setItem("userEmail", email);
+    localStorage.setItem("userName", name);
+    setUserEmail(email);
+    setUserName(name);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userProfilePicture");
+    setIsAuthenticated(false);
+    setUserEmail("");
+    setUserName("");
+    setUserProfilePicture(null);
+    setAuthPage("login");
+  };
+
+  // Profile handlers (mock for now - will be replaced with API calls)
+  const handleUpdateName = async (newName: string) => {
+    // TODO: Replace with actual API call
+    console.log("Update name:", newName);
+    localStorage.setItem("userName", newName);
+    setUserName(newName);
+  };
+
+  const handleUpdateEmail = async (newEmail: string) => {
+    // TODO: Replace with actual API call
+    console.log("Update email:", newEmail);
+    localStorage.setItem("userEmail", newEmail);
+    setUserEmail(newEmail);
+  };
+
+  const handleUpdatePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ) => {
+    // TODO: Replace with actual API call
+    console.log("Update password:", { currentPassword, newPassword });
+    // In production, this will call the backend API
+  };
+
+  const handleUpdateProfilePicture = async (file: File) => {
+    // TODO: Replace with actual API call
+    console.log("Update profile picture:", file.name);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const pictureUrl = reader.result as string;
+      localStorage.setItem("userProfilePicture", pictureUrl);
+      setUserProfilePicture(pictureUrl);
+    };
+    reader.readAsDataURL(file);
+
+    // In production, upload to server and get URL
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    // TODO: Replace with actual API call
+    console.log("Remove profile picture");
+    localStorage.removeItem("userProfilePicture");
+    setUserProfilePicture(null);
+  };
+
+  // Show authentication pages if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <>
+        {authPage === "login" ? (
+          <LoginPage
+            darkMode={darkMode}
+            onLogin={handleLogin}
+            onSwitchToRegister={() => setAuthPage("register")}
+          />
+        ) : (
+          <RegisterPage
+            darkMode={darkMode}
+            onRegister={handleRegister}
+            onSwitchToLogin={() => setAuthPage("login")}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div
@@ -211,6 +337,11 @@ export default function App() {
         setActiveTab={setActiveTab}
         setDarkMode={setDarkMode}
         darkMode={darkMode}
+        onLogout={handleLogout}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        userName={userName}
+        userProfilePicture={userProfilePicture || undefined}
+        appVersion={APP_VERSION}
       />
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -251,7 +382,7 @@ export default function App() {
           )}
 
           {activeTab === "gallery" && (
-            <GalleryView 
+            <GalleryView
               darkMode={darkMode}
               ideas={ideas}
               onAddIdea={addIdea}
@@ -261,6 +392,21 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        darkMode={darkMode}
+        currentName={userName}
+        currentEmail={userEmail}
+        currentProfilePicture={userProfilePicture || undefined}
+        onUpdateName={handleUpdateName}
+        onUpdateEmail={handleUpdateEmail}
+        onUpdatePassword={handleUpdatePassword}
+        onUpdateProfilePicture={handleUpdateProfilePicture}
+        onRemoveProfilePicture={handleRemoveProfilePicture}
+      />
     </div>
   );
 }

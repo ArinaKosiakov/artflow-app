@@ -9,7 +9,10 @@
     "aiAssistant": "Assistente AI",
     "ideasPrompts": "Idee e Prompt",
     "lightMode": "Modalità Chiara",
-    "darkMode": "Modalità Scura"
+    "darkMode": "Modalità Scura",
+    "profile": "Profilo",
+    "logout": "Esci",
+    "version": "Versione"
   },
   "header": {
     "artProjects": "Progetti Artistici",
@@ -77,6 +80,77 @@
       "placeholder": "Inserisci la tua idea o prompt...",
       "cancel": "Annulla",
       "save": "Salva"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Accedi",
+      "subtitle": "Benvenuto in ArtFlow",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Accedi",
+      "noAccount": "Non hai un account?",
+      "registerLink": "Registrati",
+      "emailPlaceholder": "nome@esempio.com",
+      "passwordPlaceholder": "Inserisci la tua password"
+    },
+    "register": {
+      "title": "Registrati",
+      "subtitle": "Crea il tuo account ArtFlow",
+      "name": "Nome",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Conferma Password",
+      "submit": "Registrati",
+      "hasAccount": "Hai già un account?",
+      "loginLink": "Accedi",
+      "namePlaceholder": "Il tuo nome",
+      "emailPlaceholder": "nome@esempio.com",
+      "passwordPlaceholder": "Minimo 8 caratteri",
+      "confirmPasswordPlaceholder": "Reinserisci la password"
+    },
+    "errors": {
+      "emailRequired": "L'email è obbligatoria",
+      "passwordRequired": "La password è obbligatoria",
+      "nameRequired": "Il nome è obbligatorio",
+      "passwordMismatch": "Le password non corrispondono",
+      "passwordTooShort": "La password deve essere di almeno 8 caratteri",
+      "invalidEmail": "Email non valida"
+    }
+  },
+  "profile": {
+    "title": "Impostazioni Profilo",
+    "profilePicture": "Foto Profilo",
+    "changePicture": "Cambia Foto",
+    "removePicture": "Rimuovi Foto",
+    "name": "Nome",
+    "namePlaceholder": "Inserisci il tuo nome",
+    "currentEmail": "Email Attuale",
+    "newEmail": "Nuova Email",
+    "currentPassword": "Password Attuale",
+    "newPassword": "Nuova Password",
+    "confirmNewPassword": "Conferma Nuova Password",
+    "changeEmail": "Cambia Email",
+    "changePassword": "Cambia Password",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "emailPlaceholder": "nuova@email.com",
+    "passwordPlaceholder": "Inserisci la nuova password",
+    "currentPasswordPlaceholder": "Inserisci la password attuale",
+    "confirmPasswordPlaceholder": "Conferma la nuova password",
+    "emailUpdated": "Email aggiornata con successo",
+    "passwordUpdated": "Password aggiornata con successo",
+    "pictureUpdated": "Foto profilo aggiornata con successo",
+    "errors": {
+      "nameRequired": "Il nome è obbligatorio",
+      "emailRequired": "L'email è obbligatoria",
+      "currentPasswordRequired": "La password attuale è obbligatoria",
+      "newPasswordRequired": "La nuova password è obbligatoria",
+      "passwordMismatch": "Le password non corrispondono",
+      "passwordTooShort": "La password deve essere di almeno 8 caratteri",
+      "invalidEmail": "Email non valida",
+      "sameEmail": "La nuova email deve essere diversa da quella attuale",
+      "samePassword": "La nuova password deve essere diversa da quella attuale"
     }
   }
 }
