@@ -28,5 +28,7 @@ Thumbs.db
 *~
 
 # Prisma
-prisma/migrations/
+# Generated files should NOT be committed (can be regenerated with 'prisma generate')
+prisma/generated/
+# Migrations SHOULD be committed (they are part of the source code)
 

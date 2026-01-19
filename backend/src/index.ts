@@ -1,39 +1,19 @@
-import express, { Express, Request, Response } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import app from "./app";
+import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
 
-const app: Express = express();
 const PORT = process.env.PORT || 3001;
-
-// Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', message: 'ArtFlow Backend API is running' });
-});
-
-// Root endpoint
-app.get('/', (req: Request, res: Response) => {
-  res.json({ 
-    message: 'ArtFlow Backend API',
-    version: '1.0.0'
-  });
-});
+const NODE_ENV = process.env.NODE_ENV || "development";
 
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📝 Environment: ${NODE_ENV}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+
+  if (NODE_ENV === "development") {
+    console.log(`📚 API Documentation: Coming soon`);
+  }
 });
-
-export default app;
-

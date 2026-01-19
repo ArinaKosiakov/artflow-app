@@ -3,7 +3,7 @@ import { Plus, X, GripVertical } from 'lucide-react';
 import AddIdeaModal from './AddIdeaModal';
 
 interface Idea {
-  id: number;
+  id: string;
   text: string;
 }
 
@@ -11,7 +11,7 @@ interface GalleryViewProps {
   darkMode: boolean;
   ideas: Idea[];
   onAddIdea: (text: string) => void;
-  onDeleteIdea: (id: number) => void;
+  onDeleteIdea: (id: string) => void;
   onReorderIdeas: (ideas: Idea[]) => void;
 }
 

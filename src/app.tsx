@@ -10,6 +10,8 @@ import GalleryView from "./components/GalleryView";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProfileModal from "./components/ProfileModal";
+import { v4 as uuid } from "uuid";
+import { Prompt } from "./types/types";
 
 // App version from package.json
 const APP_VERSION = "1.0.0";
@@ -77,34 +79,25 @@ export default function App() {
     },
   ]);
 
-  const [prompts, setPrompts] = useState([
+  const [prompts, setPrompts] = useState<Prompt[]>([
     {
-      id: 1,
+      id: "1",
       title: "Cyberpunk Cityscape",
       text: "Neon-lit futuristic city with flying cars, rain-slicked streets, holographic advertisements, dramatic perspective, highly detailed, digital art",
       saved: "2025-10-10",
+      order: 1,
     },
     {
-      id: 2,
+      id: "2",
       title: "Forest Spirit",
       text: "Ethereal forest guardian made of leaves and light, bioluminescent plants, mystical atmosphere, fantasy art, soft color palette",
       saved: "2025-10-12",
+      order: 2,
     },
   ]);
 
   // Convert prompts to ideas format (only id and text)
   const ideas = prompts.map((p) => ({ id: p.id, text: p.text }));
-
-  const [quickNotes, setQuickNotes] = useState([
-    {
-      id: 1,
-      text: "Draw a series of vintage botanical illustrations",
-      date: "2025-10-14",
-    },
-    { id: 2, text: "Experiment with watercolor portraits", date: "2025-10-15" },
-  ]);
-
-  const [newNote, setNewNote] = useState("");
 
   const [chatMessages, setChatMessages] = useState<
     Array<{ role: "user" | "assistant"; text: string }>
@@ -185,35 +178,50 @@ export default function App() {
   };
 
   const addIdea = (text: string) => {
-    const newPrompt = {
-      id: prompts.length > 0 ? Math.max(...prompts.map((p) => p.id)) + 1 : 1,
-      title: "",
-      text: text,
-      saved: new Date().toISOString().split("T")[0],
-    };
-    setPrompts([...prompts, newPrompt]);
+    setPrompts((prev) => {
+      const nextOrder =
+        prev.length === 0 ? 0 : Math.max(...prev.map((p) => p.order)) + 1;
+
+      const newPrompt: Prompt = {
+        id: uuid(),
+        title: "",
+        text,
+        saved: new Date().toISOString().split("T")[0],
+        order: nextOrder,
+      };
+
+      return [...prev, newPrompt];
+    });
   };
 
-  const deleteIdea = (id: number) => {
-    setPrompts(prompts.filter((p) => p.id !== id));
+  const deleteIdea = (id: string) => {
+    setPrompts((prev) =>
+      prev
+        .filter((p) => p.id !== id)
+        .map((p, index) => ({
+          ...p,
+          order: index,
+        }))
+    );
   };
 
   const reorderIdeas = (
-    reorderedIdeas: Array<{ id: number; text: string }>
+    reorderedIdeas: Array<{ id: string; text: string }>
   ) => {
-    // Map the reordered ideas back to prompts, preserving other properties
-    const reorderedPrompts = reorderedIdeas.map((idea) => {
-      const originalPrompt = prompts.find((p) => p.id === idea.id);
-      return (
-        originalPrompt || {
-          id: idea.id,
-          title: "",
-          text: idea.text,
-          saved: new Date().toISOString().split("T")[0],
+    setPrompts((prev) =>
+      reorderedIdeas.map((idea, index) => {
+        const prompt = prev.find((p) => p.id === idea.id);
+
+        if (!prompt) {
+          throw new Error("Prompt not found during reorder");
         }
-      );
-    });
-    setPrompts(reorderedPrompts);
+
+        return {
+          ...prompt,
+          order: index,
+        };
+      })
+    );
   };
 
   // Authentication handlers (mock for now - will be replaced with API calls)

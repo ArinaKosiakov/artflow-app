@@ -1,7 +1,8 @@
+// Example Prisma Schema for ArtFlow App
+// Copy this to backend/prisma/schema.prisma after running 'prisma init'
 
 generator client {
   provider = "prisma-client-js"
-  output = "./generated"
 }
 
 datasource db {
@@ -131,3 +132,4 @@ model UserSettings {
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
