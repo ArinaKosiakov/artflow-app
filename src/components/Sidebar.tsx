@@ -90,7 +90,7 @@ function Sidebar({
             <span className="font-medium">{t("sidebar.contentCalendar")}</span>
           </button>
 
-          <button
+          {/* <button
             onClick={() => setActiveTab("ai")}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
               activeTab === "ai"
@@ -100,7 +100,7 @@ function Sidebar({
           >
             <MessageSquare className="w-5 h-5" />
             <span className="font-medium">{t("sidebar.aiAssistant")}</span>
-          </button>
+          </button> */}
 
           <button
             onClick={() => setActiveTab("gallery")}

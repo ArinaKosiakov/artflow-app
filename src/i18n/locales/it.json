@@ -1,4 +1,9 @@
 {
+  "common": {
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "drag": "Trascina per riordinare"
+  },
   "app": {
     "name": "ArtFlow",
     "subtitle": "Creative Studio"
@@ -30,6 +35,9 @@
     "noProjects": "Nessun progetto ancora. Crea il tuo primo progetto!",
     "due": "Scadenza:",
     "progress": "Progresso",
+    "editProject": {
+      "title": "Modifica Progetto"
+    },
     "addProject": {
       "title": "Aggiungi Nuovo Progetto",
       "projectTitle": "Titolo Progetto",
@@ -50,6 +58,9 @@
     }
   },
   "content": {
+    "editContent": {
+      "title": "Modifica Contenuto"
+    },
     "addContent": {
       "title": "Aggiungi Nuovo Contenuto",
       "contentTitle": "Titolo Contenuto",
@@ -74,6 +85,9 @@
     "welcomeMessage": "Ciao! Sono il tuo assistente artistico AI. Posso aiutarti a generare prompt, fare brainstorming di idee o discutere tecniche artistiche. Su cosa stai lavorando oggi?"
   },
   "gallery": {
+    "editIdea": {
+      "title": "Modifica Idea"
+    },
     "addIdea": {
       "title": "Aggiungi Nuova Idea",
       "text": "Testo Idea",
@@ -83,6 +97,7 @@
     }
   },
   "auth": {
+    "loading": "Caricamento...",
     "login": {
       "title": "Accedi",
       "subtitle": "Benvenuto in ArtFlow",

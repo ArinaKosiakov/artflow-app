@@ -6,8 +6,8 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/', getSettings);
-router.put('/', updateSettings);
-router.delete('/', deleteSettings);
+router.get("/settings", getSettings);
+router.put("/settings", updateSettings);
+router.delete("/settings", deleteSettings);
 
 export default router;

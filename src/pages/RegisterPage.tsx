@@ -6,14 +6,22 @@ interface RegisterPageProps {
   darkMode: boolean;
   onRegister: (name: string, email: string, password: string) => void;
   onSwitchToLogin: () => void;
+  serverError?: string | null;
+  onClearError?: () => void;
 }
 
-export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: RegisterPageProps) {
+export default function RegisterPage({
+  darkMode,
+  onRegister,
+  onSwitchToLogin,
+  serverError,
+  onClearError,
+}: RegisterPageProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -31,25 +39,25 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
     } = {};
 
     if (!name.trim()) {
-      newErrors.name = t('auth.errors.nameRequired');
+      newErrors.name = t("auth.errors.nameRequired");
     }
 
     if (!email.trim()) {
-      newErrors.email = t('auth.errors.emailRequired');
+      newErrors.email = t("auth.errors.emailRequired");
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = t('auth.errors.invalidEmail');
+      newErrors.email = t("auth.errors.invalidEmail");
     }
 
     if (!password) {
-      newErrors.password = t('auth.errors.passwordRequired');
+      newErrors.password = t("auth.errors.passwordRequired");
     } else if (password.length < 8) {
-      newErrors.password = t('auth.errors.passwordTooShort');
+      newErrors.password = t("auth.errors.passwordTooShort");
     }
 
     if (!confirmPassword) {
-      newErrors.confirmPassword = t('auth.errors.passwordRequired');
+      newErrors.confirmPassword = t("auth.errors.passwordRequired");
     } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = t('auth.errors.passwordMismatch');
+      newErrors.confirmPassword = t("auth.errors.passwordMismatch");
     }
 
     setErrors(newErrors);
@@ -74,31 +82,59 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'} transition-colors`}>
+    <div
+      className={`min-h-screen flex items-center justify-center ${darkMode ? "bg-gray-900" : "bg-gradient-to-br from-gray-50 to-gray-100"} transition-colors`}
+    >
       <div className="w-full max-w-md px-6">
         {/* Logo and Title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl mb-4">
             <Palette className="w-8 h-8 text-white" />
           </div>
-          <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} mb-2`}>
-            {t('auth.register.title')}
+          <h1
+            className={`text-3xl font-bold ${darkMode ? "text-white" : "text-gray-800"} mb-2`}
+          >
+            {t("auth.register.title")}
           </h1>
-          <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            {t('auth.register.subtitle')}
+          <p className={`${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+            {t("auth.register.subtitle")}
           </p>
         </div>
 
         {/* Register Form */}
-        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-8`}>
+        <div
+          className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} rounded-xl shadow-lg border p-8`}
+        >
+          {serverError && (
+            <div
+              className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+              role="alert"
+            >
+              {serverError}
+              {onClearError && (
+                <button
+                  type="button"
+                  onClick={onClearError}
+                  className="ml-2 underline focus:outline-none"
+                  aria-label="Dismiss"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Field */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {t('auth.register.name')}
+              <label
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                {t("auth.register.name")}
               </label>
               <div className="relative">
-                <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                <User
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                />
                 <input
                   type="text"
                   value={name}
@@ -106,13 +142,13 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
                     setName(e.target.value);
                     if (errors.name) setErrors({ ...errors, name: undefined });
                   }}
-                  placeholder={t('auth.register.namePlaceholder')}
+                  placeholder={t("auth.register.namePlaceholder")}
                   className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                     errors.name
-                      ? 'border-red-500'
+                      ? "border-red-500"
                       : darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                   } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                 />
               </div>
@@ -123,25 +159,30 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
 
             {/* Email Field */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {t('auth.register.email')}
+              <label
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                {t("auth.register.email")}
               </label>
               <div className="relative">
-                <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                <Mail
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
-                    if (errors.email) setErrors({ ...errors, email: undefined });
+                    if (errors.email)
+                      setErrors({ ...errors, email: undefined });
                   }}
-                  placeholder={t('auth.register.emailPlaceholder')}
+                  placeholder={t("auth.register.emailPlaceholder")}
                   className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                     errors.email
-                      ? 'border-red-500'
+                      ? "border-red-500"
                       : darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                   } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                 />
               </div>
@@ -152,30 +193,41 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
 
             {/* Password Field */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {t('auth.register.password')}
+              <label
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                {t("auth.register.password")}
               </label>
               <div className="relative">
-                <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                <Lock
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: undefined });
-                    if (errors.confirmPassword && e.target.value !== confirmPassword) {
-                      setErrors({ ...errors, confirmPassword: t('auth.errors.passwordMismatch') });
+                    if (errors.password)
+                      setErrors({ ...errors, password: undefined });
+                    if (
+                      errors.confirmPassword &&
+                      e.target.value !== confirmPassword
+                    ) {
+                      setErrors({
+                        ...errors,
+                        confirmPassword: t("auth.errors.passwordMismatch"),
+                      });
                     } else if (errors.confirmPassword) {
                       setErrors({ ...errors, confirmPassword: undefined });
                     }
                   }}
-                  placeholder={t('auth.register.passwordPlaceholder')}
+                  placeholder={t("auth.register.passwordPlaceholder")}
                   className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                     errors.password
-                      ? 'border-red-500'
+                      ? "border-red-500"
                       : darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                   } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                 />
               </div>
@@ -186,11 +238,15 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
 
             {/* Confirm Password Field */}
             <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {t('auth.register.confirmPassword')}
+              <label
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                {t("auth.register.confirmPassword")}
               </label>
               <div className="relative">
-                <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                <Lock
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                />
                 <input
                   type="password"
                   value={confirmPassword}
@@ -198,24 +254,29 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
                     setConfirmPassword(e.target.value);
                     if (errors.confirmPassword) {
                       if (e.target.value !== password) {
-                        setErrors({ ...errors, confirmPassword: t('auth.errors.passwordMismatch') });
+                        setErrors({
+                          ...errors,
+                          confirmPassword: t("auth.errors.passwordMismatch"),
+                        });
                       } else {
                         setErrors({ ...errors, confirmPassword: undefined });
                       }
                     }
                   }}
-                  placeholder={t('auth.register.confirmPasswordPlaceholder')}
+                  placeholder={t("auth.register.confirmPasswordPlaceholder")}
                   className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                     errors.confirmPassword
-                      ? 'border-red-500'
+                      ? "border-red-500"
                       : darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                   } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                 />
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.confirmPassword}
+                </p>
               )}
             </div>
 
@@ -229,7 +290,7 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
                 <span>Loading...</span>
               ) : (
                 <>
-                  {t('auth.register.submit')}
+                  {t("auth.register.submit")}
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -238,13 +299,15 @@ export default function RegisterPage({ darkMode, onRegister, onSwitchToLogin }: 
 
           {/* Login Link */}
           <div className="mt-6 text-center">
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {t('auth.register.hasAccount')}{' '}
+            <p
+              className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+            >
+              {t("auth.register.hasAccount")}{" "}
               <button
                 onClick={onSwitchToLogin}
                 className="text-purple-500 hover:text-purple-600 font-medium transition-colors"
               >
-                {t('auth.register.loginLink')}
+                {t("auth.register.loginLink")}
               </button>
             </p>
           </div>

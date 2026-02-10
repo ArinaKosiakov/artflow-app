@@ -52,9 +52,3 @@ export const reorderPrompts = asyncHandler(
         res.json({success: true, data: prompt});
     }
 )
-export const savePrompt = asyncHandler(async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const userId = req.user!.id;
-    const data = req.body;
-    const prompt = await promptService.reorderPrompts(userId,data);
-    res.json({success: true, data: prompt});
-})

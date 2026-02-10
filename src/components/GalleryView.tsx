@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, X, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Pencil, GripVertical } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import AddIdeaModal from './AddIdeaModal';
 
 interface Idea {
@@ -11,18 +12,22 @@ interface GalleryViewProps {
   darkMode: boolean;
   ideas: Idea[];
   onAddIdea: (text: string) => void;
+  onEditIdea?: (id: string, text: string) => void;
   onDeleteIdea: (id: string) => void;
   onReorderIdeas: (ideas: Idea[]) => void;
 }
 
-export default function GalleryView({ 
-  darkMode, 
-  ideas, 
-  onAddIdea, 
+export default function GalleryView({
+  darkMode,
+  ideas,
+  onAddIdea,
+  onEditIdea,
   onDeleteIdea,
-  onReorderIdeas 
+  onReorderIdeas,
 }: GalleryViewProps) {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingIdea, setEditingIdea] = useState<Idea | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -46,11 +51,9 @@ export default function GalleryView({
       setDragOverIndex(null);
       return;
     }
-
     const newIdeas = [...ideas];
     const [removed] = newIdeas.splice(draggedIndex, 1);
     newIdeas.splice(dropIndex, 0, removed);
-    
     onReorderIdeas(newIdeas);
     setDraggedIndex(null);
     setDragOverIndex(null);
@@ -61,24 +64,39 @@ export default function GalleryView({
     setDragOverIndex(null);
   };
 
+  const openEditModal = (idea: Idea) => {
+    setEditingIdea(idea);
+  };
+
+  const closeEditModal = () => {
+    setEditingIdea(null);
+  };
+
+  const handleEditSave = (text: string) => {
+    if (editingIdea && text.trim()) {
+      onEditIdea?.(editingIdea.id, text.trim());
+      closeEditModal();
+    }
+  };
+
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Add new idea button */}
         <button
           onClick={() => setIsModalOpen(true)}
-          className={`aspect-square rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center border-2 border-dashed ${
+          className={`rounded-xl shadow-sm border-2 border-dashed p-6 hover:shadow-md transition-all cursor-pointer flex items-center justify-center min-h-[140px] ${
             darkMode
-              ? "border-gray-600 hover:border-gray-500 bg-gray-800/50"
-              : "border-gray-300 hover:border-gray-400 bg-white/50"
+              ? "border-gray-600 hover:border-gray-500 bg-gray-800 border-gray-700"
+              : "border-gray-300 hover:border-gray-400 bg-white border-gray-200"
           }`}
         >
           <Plus
-            className={`w-12 h-12 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+            className={`w-10 h-10 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
           />
         </button>
 
-        {/* Ideas */}
+        {/* Idea cards - same style as ProjectCard */}
         {ideas.map((idea, index) => (
           <div
             key={idea.id}
@@ -88,81 +106,70 @@ export default function GalleryView({
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, index)}
             onDragEnd={handleDragEnd}
-            className={`aspect-square rounded-xl shadow-sm hover:shadow-md transition-all cursor-move relative group p-[2px] bg-gradient-to-br from-purple-200 to-pink-200 ${
-              draggedIndex === index ? "opacity-50" : ""
-            } ${dragOverIndex === index ? "ring-2 ring-purple-500" : ""}`}
+            className={`cursor-move ${draggedIndex === index ? "opacity-50" : ""} ${
+              dragOverIndex === index ? "ring-2 ring-purple-500 rounded-xl" : ""
+            }`}
           >
             <div
-              className="w-full h-full rounded-[10px] relative"
-              style={{
-                background: darkMode
-                  ? "rgba(31, 41, 55, 0.7)"
-                  : "rgba(255, 255, 255, 0.7)",
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-              }}
+              className={`${
+                darkMode
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-white border-gray-200"
+              } rounded-xl shadow-sm border p-6 hover:shadow-md transition-all relative group`}
             >
-              {/* Drag handle */}
-              <div
-                className={`absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                  darkMode
-                    ? "text-gray-400 hover:text-gray-300"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                <GripVertical className="w-4 h-4" />
-              </div>
-
-              {/* Delete button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteIdea(idea.id);
-                }}
-                className={`absolute top-2 left-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                  darkMode
-                    ? "text-gray-400 hover:text-red-400 bg-gray-700/50 hover:bg-gray-700"
-                    : "text-gray-500 hover:text-red-500 bg-gray-100/50 hover:bg-gray-200"
-                }`}
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              {/* Drag handle */}
-              <div
-                className={`absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 ${
-                  darkMode
-                    ? "text-gray-400 hover:text-gray-300"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                <GripVertical className="w-4 h-4" />
-              </div>
-
-              {/* Delete button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteIdea(idea.id);
-                }}
-                className={`absolute top-2 left-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 ${
-                  darkMode
-                    ? "text-gray-400 hover:text-red-400 bg-gray-700/50 hover:bg-gray-700"
-                    : "text-gray-500 hover:text-red-500 bg-gray-100/50 hover:bg-gray-200"
-                }`}
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              {/* Idea text */}
-              <div className="p-4 h-full flex items-center justify-center">
-                <p
-                  className={`text-sm text-center line-clamp-6 ${
-                    darkMode ? "text-gray-200" : "text-gray-800"
-                  }`}
-                >
-                  {idea.text}
-                </p>
+              {/* Top row: message + drag handle + edit/delete (like ProjectCard header) */}
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1 min-w-0 pr-2">
+                  <p
+                    className={`text-sm ${
+                      darkMode ? "text-gray-200" : "text-gray-800"
+                    } whitespace-pre-wrap break-words`}
+                  >
+                    {idea.text}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <span
+                    className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing ${
+                      darkMode
+                        ? "text-gray-400 hover:text-gray-300"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    title={t("common.drag")}
+                  >
+                    <GripVertical className="w-4 h-4" />
+                  </span>
+                  {onEditIdea && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditModal(idea);
+                      }}
+                      className={`${
+                        darkMode
+                          ? "text-gray-500 hover:text-purple-400"
+                          : "text-gray-400 hover:text-purple-500"
+                      } transition-colors`}
+                      title={t("common.edit")}
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteIdea(idea.id);
+                    }}
+                    className={`${
+                      darkMode
+                        ? "text-gray-500 hover:text-red-400"
+                        : "text-gray-400 hover:text-red-500"
+                    } transition-colors`}
+                    title={t("common.delete")}
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -175,7 +182,15 @@ export default function GalleryView({
         onSave={onAddIdea}
         darkMode={darkMode}
       />
+
+      <AddIdeaModal
+        isOpen={!!editingIdea}
+        onClose={closeEditModal}
+        onSave={handleEditSave}
+        darkMode={darkMode}
+        initialText={editingIdea?.text}
+        titleKey="gallery.editIdea.title"
+      />
     </>
   );
 }
-
