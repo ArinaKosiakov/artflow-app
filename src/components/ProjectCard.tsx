@@ -3,13 +3,13 @@ import { Calendar, Trash2, Check, Pencil } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 
 interface Step {
-  id: number;
+  id: string;
   text: string;
   done: boolean;
 }
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   deadline: string;
@@ -20,8 +20,8 @@ interface Project {
 interface ProjectCardProps {
   project: Project;
   darkMode: boolean;
-  onToggleStep: (projectId: number, stepId: number) => void;
-  onDelete: (id: number) => void;
+  onToggleStep: (projectId: string, stepId: string) => void;
+  onDelete: (id: string) => void;
   onEdit: (project: Project) => void;
 }
 

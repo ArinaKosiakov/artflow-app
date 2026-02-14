@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Pencil, GripVertical } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AddIdeaModal from './AddIdeaModal';
+import { Prompt } from "../types/types";
 
 interface Idea {
   id: string;

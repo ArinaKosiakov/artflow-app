@@ -1,21 +1,25 @@
 import React from 'react';
 import { useTranslation } from "react-i18next";
 import { Calendar, Youtube, Video, Check, Trash2, Pencil } from "lucide-react";
+import { ContentIdea } from "../hooks/useAppHandlers";
 
 interface Content {
-  id: number;
+  id: string;
   title: string;
-  platform: string;
+  platform?: string;
   deadline: string;
   done: boolean;
+  details: string;
+  order: number;
 }
 
 interface ContentViewProps {
   contentIdeas: Content[];
   darkMode: boolean;
-  onToggleContent: (id: number) => void;
-  onDeleteContent: (id: number) => void;
+  onToggleContent: (id: string) => void;
+  onDeleteContent: (id: string) => void;
   onEditContent: (content: Content) => void;
+  onSaveContent: (content: Omit<ContentIdea, "id">, id?: string) => void;
 }
 
 export default function ContentView({
@@ -24,6 +28,7 @@ export default function ContentView({
   onToggleContent,
   onDeleteContent,
   onEditContent,
+  onSaveContent,
 }: ContentViewProps) {
   const { t } = useTranslation();
   return (

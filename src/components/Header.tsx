@@ -3,15 +3,16 @@ import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AddProjectModal from "./AddProjectModal";
 import AddContentModal from "./AddContentModal";
+import { Platform } from "../services/api";
 
 interface Step {
-  id: number;
+  id: string;
   text: string;
   done: boolean;
 }
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   deadline: string;
@@ -20,12 +21,13 @@ interface Project {
 }
 
 interface Content {
-  id: number;
+  id: string;
   title: string;
-  platform: string;
+  platform: Platform;
   deadline: string;
   done: boolean;
-  details?: string;
+  details: string;
+  order: number;
 }
 
 interface HeaderProps {
@@ -35,12 +37,17 @@ interface HeaderProps {
   editingProject: Project | null;
   onOpenProjectModal: () => void;
   onCloseProjectModal: () => void;
-  onSaveProject: (project: Omit<Project, "id">, id?: number) => void;
+  onSaveProject: (
+    project: Omit<Project, "id"> & {
+      steps: Array<{ id?: string; text: string; done: boolean }>;
+    },
+    id?: string,
+  ) => void;
   isContentModalOpen: boolean;
   editingContent: Content | null;
   onOpenContentModal: () => void;
   onCloseContentModal: () => void;
-  onSaveContent: (content: Omit<Content, "id">, id?: number) => void;
+  onSaveContent: (content: Omit<Content, "id">, id?: string) => void;
 }
 
 export default function Header({

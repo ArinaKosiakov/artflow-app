@@ -7,6 +7,14 @@ const getApiBaseUrl = (): string => {
   return "http://localhost:3001";
 };
 
+/**
+ * Get profile picture URL from picture ID
+ */
+export function getProfilePictureUrl(pictureId: string | null): string | undefined {
+  if (!pictureId) return undefined;
+  return `${getApiBaseUrl()}/uploads/profilePictures/${pictureId}`;
+}
+
 const AUTH_TOKEN_KEY = "authToken";
 
 export function getStoredToken(): string | null {
@@ -29,6 +37,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
+  password: string;
   profilePicture: string | null;
   createdAt: string;
   updatedAt?: string;
@@ -122,15 +131,25 @@ export async function register(
 /**
  * Profile 
  */ 
-interface userProfile {
-  name:string;
-  email:string;
-  profilePicture:string;
+export interface UserProfile {
+  name: string;
+  email: string;
+  profilePicture: string | null;
 }
-export async function getProfile(): Promise<userProfile> {
-  const res = await fetch(`${getApiBaseUrl()}/api/`, {
+
+export interface UpdatePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export async function getProfile(): Promise<UserProfile> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/profile`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
@@ -138,22 +157,73 @@ export async function getProfile(): Promise<userProfile> {
   }
   return json.data;
 }
-export async function updateProfile(profile:userProfile): Promise<userProfile> {
-  const res = await fetch(`${getApiBaseUrl()}/api/`, {
+
+export async function updateProfile(
+  profile: Partial<UserProfile> & { profilePicture?: string | null },
+): Promise<UserProfile> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/profile`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(profile)
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(profile),
   });
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json?.error || "Profile failed");
+    throw new Error(json?.error || "Profile update failed");
   }
   return json.data;
 }
-export async function deleteProfile(): Promise<userProfile> {
-  const res = await fetch(`${getApiBaseUrl()}/api/`, {
+
+export async function updatePassword(
+  payload: UpdatePasswordPayload,
+): Promise<{ success: boolean }> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/profile/password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json?.error || "Password update failed");
+  }
+  return json;
+}
+
+export async function uploadProfilePicture(
+  file: File,
+): Promise<{ pictureId: string }> {
+  const token = getStoredToken();
+  const formData = new FormData();
+  formData.append("profilePicture", file);
+
+  const res = await fetch(`${getApiBaseUrl()}/api/profile/picture`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json?.error || "Profile picture upload failed");
+  }
+  return json.data;
+}
+export async function deleteProfile(): Promise<UserProfile> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/profile`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
@@ -165,15 +235,19 @@ export async function deleteProfile(): Promise<userProfile> {
 /**
  * Settings 
  */  
-interface userSettings {
-  darkMode:boolean;
-  language:"string";
+export interface UserSettings {
+  darkMode: boolean;
+  language: string;
 }  
 
-export async function getSettings(): Promise<userSettings> {
+export async function getSettings(): Promise<UserSettings> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/settings`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
@@ -181,11 +255,17 @@ export async function getSettings(): Promise<userSettings> {
   }
   return json.data;
 }
-export async function updateSettings(settings:userSettings): Promise<Settings> {
+export async function updateSettings(
+  settings: UserSettings,
+): Promise<UserSettings> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/settings`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(settings)
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(settings),
   });
   const json = await res.json();
   if (!res.ok) {
@@ -193,11 +273,13 @@ export async function updateSettings(settings:userSettings): Promise<Settings> {
   }
   return json.data;
 }
-export async function deleteSettings(settings:userSettings): Promise<Settings> {
+export async function deleteSettings(
+  settings: UserSettings,
+): Promise<UserSettings> {
   const res = await fetch(`${getApiBaseUrl()}/api/settings`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(settings)
+    body: JSON.stringify(settings),
   });
   const json = await res.json();
   if (!res.ok) {
@@ -208,75 +290,117 @@ export async function deleteSettings(settings:userSettings): Promise<Settings> {
 /**
  * Prompts
  */ 
-interface Prompts {
-  id:string;
-  title:string;
-  text:string;
-  order:number;
-  saved:string;
+export interface Prompts {
+  id: string;
+  title: string;
+  text: string;
+  order: number;
+  saved: string;
 }
-export async function getPrompts(promptId?:string): Promise<Prompts> {
-  const res = await fetch(`${getApiBaseUrl()}/api/prompts${promptId ? `/${promptId}`:''}`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
-  const json = await res.json();
-  if (!res.ok) {
-    throw new Error(json?.error || "Prompts failed");
-  }
-  return json.data;
-}
-export async function createPrompts(prompts:Prompts): Promise<Prompts> {
+
+export async function getPrompts(): Promise<Prompts[]> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/prompts`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(prompts)
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json?.error || "Prompts failed");
+    throw new Error(json?.error || "Prompts fetch failed");
+  }
+  return Array.isArray(json.data) ? json.data : [];
+}
+
+export async function getPromptById(promptId: string): Promise<Prompts> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/prompts/${promptId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json?.error || "Prompt fetch failed");
   }
   return json.data;
 }
-export async function updatePrompts(prompts:Prompts): Promise<Prompts> {
-  const res = await fetch(`${getApiBaseUrl()}/api/prompts/${prompts.id}`, {
+
+export async function createPrompts(prompt: Prompts): Promise<Prompts> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/prompts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(prompt),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json?.error || "Prompt create failed");
+  }
+  return json.data;
+}
+
+export async function updatePrompts(prompt: Prompts): Promise<Prompts> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/prompts/${prompt.id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(prompts)
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(prompt),
   });
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json?.error || "Prompts failed");
+    throw new Error(json?.error || "Prompt update failed");
   }
   return json.data;
 }
-export async function deletePromp(prompts:Prompts): Promise<Prompts> {
-  const res = await fetch(`${getApiBaseUrl()}/api/prompts/${prompts.id}`, {
+
+export async function deletePrompt(id: string): Promise<void> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/prompts/${id}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json?.error || "Profile failed");
+    throw new Error(json?.error || "Prompt delete failed");
   }
-  return json.data;
 }
-export async function reorderPrompts(prompts:Prompts): Promise<Prompts> {
-  const res = await fetch(`${getApiBaseUrl()}/api/prompts`, {
+
+export async function reorderPrompts(
+  prompts: Array<{ id: string; order: number }>,
+): Promise<Prompts[]> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/prompts/reorder`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(prompts)
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ prompts }),
   });
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json?.error || "Prompts failed");
+    throw new Error(json?.error || "Prompts reorder failed");
   }
   return json.data;
 }
 /**
  * Content Ideas
  */ 
-enum Platform {
+export enum Platform {
   YOUTUBE = "youtube",
   TIKTOK = "tiktok",
   INSTAGRAM = "instagram",
@@ -284,30 +408,38 @@ enum Platform {
   FACEBOOK = "facebook",
 }
 interface ContentIdeas {
-  id:string
-  title:string
-  platform?: Platform
-  deadline:string
-  done:boolean
-  details:string
-  order:number
+  id: string;
+  title: string;
+  platform: Platform;
+  deadline: string;
+  done: boolean;
+  details: string;
+  order: number;
 }
 
-export async function getContentIdeas(): Promise<ContentIdeas> {
+export async function getContentIdeas(): Promise<ContentIdeas[]> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/ideas`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
     throw new Error(json?.error || "Content Ideas fetch failed");
   }
-  return json.data;
+  return Array.isArray(json.data) ? json.data : [];
 }
 export async function getContentIdeaById(id:string): Promise<ContentIdeas> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/ideas/${id}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
@@ -316,22 +448,30 @@ export async function getContentIdeaById(id:string): Promise<ContentIdeas> {
   return json.data;
 }
 export async function createContentIdea(contentIdea:ContentIdeas): Promise<ContentIdeas> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/ideas`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(contentIdea)
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(contentIdea),
   });
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json?.error || "Content Ideas createfailed");
+    throw new Error(json?.error || "Content Ideas create failed");
   }
   return json.data;
 }
 export async function updateContentIdea(contentIdea:ContentIdeas): Promise<ContentIdeas> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/ideas/${contentIdea.id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(contentIdea)
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(contentIdea),
   });
   const json = await res.json();
   if (!res.ok) {
@@ -339,11 +479,14 @@ export async function updateContentIdea(contentIdea:ContentIdeas): Promise<Conte
   }
   return json.data;
 }
-export async function toggleContentIdea(contentIdea:ContentIdeas): Promise<ContentIdeas> {
-  const res = await fetch(`${getApiBaseUrl()}/api/ideas/${contentIdea.id}/toggle`, {
+export async function toggleContentIdea(id: string): Promise<ContentIdeas> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/ideas/${id}/toggle`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(contentIdea)
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
@@ -351,16 +494,19 @@ export async function toggleContentIdea(contentIdea:ContentIdeas): Promise<Conte
   }
   return json.data;
 }
-export async function deleteContentIdea(contentIdea:ContentIdeas): Promise<ContentIdeas> {
-  const res = await fetch(`${getApiBaseUrl()}/api/ideas/${contentIdea.id}`, {
+export async function deleteContentIdea(id: string): Promise<void> {
+  const token = getStoredToken();
+  const res = await fetch(`${getApiBaseUrl()}/api/ideas/${id}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
     throw new Error(json?.error || "Content Ideas delete failed");
   }
-  return json.data;
 }
 
 
@@ -373,31 +519,35 @@ enum ProjectStatus {
   COMPLETED = "completed",
 }
 
-interface ProjectsSteps {
-  id:string
-  text:string
-  done:boolean
-  order:number
+export interface ProjectsSteps {
+  id: string;
+  text: string;
+  done: boolean;
+  order: number;
 }
-interface Projects {
-  id:string
-  title:string
-  description:string
-  deadline:string
-  status:ProjectStatus
-  order:number
-  steps:ProjectsSteps[]
+export interface Projects {
+  id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  status: string;
+  order: number;
+  steps: ProjectsSteps[];
 }
-export async function getProjects(): Promise<Projects> {
+export async function getProjects(): Promise<Projects[]> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/projects`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
     throw new Error(json?.error || "Projects fetch failed");
   }
-  return json.data;
+  return Array.isArray(json.data) ? json.data : [];
 }
 export async function getProjectById(id:string): Promise<Projects> {
   const res = await fetch(`${getApiBaseUrl()}/api/projects/${id}`, {
@@ -410,11 +560,19 @@ export async function getProjectById(id:string): Promise<Projects> {
   }
   return json.data;
 }
-export async function createProject(contentIdea:Projects): Promise<Projects> {
+/** Payload for creating a project; steps may omit id/order (backend generates them). */
+export type CreateProjectPayload = Omit<Projects, "id" | "steps"> & {
+  steps: Array<{ text: string; done?: boolean }>;
+};
+export async function createProject(project: CreateProjectPayload): Promise<Projects> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/projects`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(contentIdea)
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(project),
   });
   const json = await res.json();
   if (!res.ok) {
@@ -422,11 +580,15 @@ export async function createProject(contentIdea:Projects): Promise<Projects> {
   }
   return json.data;
 }
-export async function updateProject(project:Projects): Promise<Projects> {
+export async function updateProject(project: Projects): Promise<Projects> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/projects/${project.id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:JSON.stringify(project)
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(project),
   });
   const json = await res.json();
   if (!res.ok) {
@@ -439,12 +601,16 @@ export async function toggleProjectStep(
   projectId: string,
   stepId: string
 ): Promise<ProjectsSteps> {
+  const token = getStoredToken();
   const res = await fetch(
     `${getApiBaseUrl()}/api/projects/${projectId}/${stepId}`,
     {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-    }
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
   );
   const json = await res.json();
   if (!res.ok) {
@@ -452,16 +618,19 @@ export async function toggleProjectStep(
   }
   return json.data;
 }
-export async function deleteproject(project:Projects): Promise<Projects> {
+export async function deleteProjectById(project: Projects): Promise<void> {
+  const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/projects/${project.id}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const json = await res.json();
   if (!res.ok) {
     throw new Error(json?.error || "Projects delete failed");
   }
-  return json.data;
 }
 
 

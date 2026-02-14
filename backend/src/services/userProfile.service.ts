@@ -8,6 +8,7 @@ export class UserProfileService {
       where: { id: userId },
       select: {
         id: true,
+        password: true,
         email: true,
         name: true,
         profilePicture: true,

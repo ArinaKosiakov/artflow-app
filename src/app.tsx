@@ -5,335 +5,190 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import ProjectsView from "./pages/ProjectsView";
 import ContentView from "./pages/ContentView";
-import AiAssistantView from "./pages/AiAssistantView";
 import GalleryView from "./components/GalleryView";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProfileModal from "./components/ProfileModal";
-import { v4 as uuid } from "uuid";
 import { Prompt } from "./types/types";
+import {
+  getStoredToken,
+  authMe,
+  getSettings,
+  getProjects,
+  getContentIdeas,
+  getPrompts,
+} from "./services/api";
+import type { Projects } from "./services/api";
+import { useAppHandlers, type ContentIdea } from "./hooks/useAppHandlers";
+import { getProfilePictureUrl } from "./lib/profilePictures";
 
 // App version from package.json
 const APP_VERSION = "1.0.0";
 
 export default function App() {
   const { t } = useTranslation();
-  //1-projects 2-content 3-ai 4-prompts
   const [activeTab, setActiveTab] = useState("projects");
 
-  // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Check if user is authenticated (for now just check localStorage)
-    return localStorage.getItem("isAuthenticated") === "true";
+    return getStoredToken() !== null;
   });
   const [authPage, setAuthPage] = useState<"login" | "register">("login");
+const [userInfo, setUserInfo] = useState({
+  email: "",
+  name: "",
+  profilePicture: null as string | null,
+});
+const [settings, setSettings] = useState({
+  darkMode: false,
+  language: "en",
+});
 
-  // User profile state
-  const [userEmail, setUserEmail] = useState(() => {
-    return localStorage.getItem("userEmail") || "";
-  });
-  const [userName, setUserName] = useState(() => {
-    return localStorage.getItem("userName") || "";
-  });
-  const [userProfilePicture, setUserProfilePicture] = useState<string | null>(
-    () => {
-      return localStorage.getItem("userProfilePicture") || null;
+useEffect(() => {
+  const loadUser = async () => {
+    const user = await authMe();
+    if (user) {
+      setUserInfo({
+        email: user.email,
+        name: user.name || "",
+        profilePicture: user.profilePicture || null,
+      });
+      setIsAuthenticated(true);
+    } else {
+      setUserInfo({
+        email: "",
+        name: "",
+        profilePicture: null,
+      });
+      setIsAuthenticated(false);
+      setAuthPage("login");
     }
-  );
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-
-  // Load dark mode from localStorage on initial render
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedDarkMode = localStorage.getItem("darkMode");
-    return savedDarkMode ? JSON.parse(savedDarkMode) : false;
-  });
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      title: "Abstract Series",
-      description: "Exploration of geometric forms",
-      deadline: "2025-11-01",
-      steps: [
-        { id: 1, text: "Sketch concepts", done: true },
-        { id: 2, text: "Color palette selection", done: true },
-        { id: 3, text: "Create 5 pieces", done: false },
-      ],
-      status: "in-progress",
-    },
-  ]);
-
-  const [contentIdeas, setContentIdeas] = useState([
-    {
-      id: 1,
-      title: "Process video - Abstract Series",
-      platform: "youtube",
-      deadline: "2025-10-20",
-      done: false,
-    },
-    {
-      id: 2,
-      title: "Time-lapse reel",
-      platform: "tiktok",
-      deadline: "2025-10-18",
-      done: false,
-    },
-  ]);
-
-  const [prompts, setPrompts] = useState<Prompt[]>([
-    {
-      id: "1",
-      title: "Cyberpunk Cityscape",
-      text: "Neon-lit futuristic city with flying cars, rain-slicked streets, holographic advertisements, dramatic perspective, highly detailed, digital art",
-      saved: "2025-10-10",
-      order: 1,
-    },
-    {
-      id: "2",
-      title: "Forest Spirit",
-      text: "Ethereal forest guardian made of leaves and light, bioluminescent plants, mystical atmosphere, fantasy art, soft color palette",
-      saved: "2025-10-12",
-      order: 2,
-    },
-  ]);
-
-  // Convert prompts to ideas format (only id and text)
-  const ideas = prompts.map((p) => ({ id: p.id, text: p.text }));
-
-  const [chatMessages, setChatMessages] = useState<
-    Array<{ role: "user" | "assistant"; text: string }>
-  >([]);
-
-  const [chatInput, setChatInput] = useState("");
-
-  // Save dark mode to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("darkMode", JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  useEffect(() => {
-    setChatMessages([
-      {
-        role: "assistant",
-        text: t("ai.welcomeMessage"),
-      },
-    ]);
-  }, [i18n.language, t]);
-
-  const addChatMessage = () => {
-    if (chatInput.trim()) {
-      setChatMessages([
-        ...chatMessages,
-        { role: "user", text: chatInput },
-        {
-          role: "assistant",
-          text: 'Here\'s a prompt idea based on your request: "A vibrant abstract composition featuring flowing geometric shapes, bold color gradients from deep blues to warm oranges, with dynamic movement and energy, digital art, high detail."',
-        },
-      ]);
-      setChatInput("");
+  };
+  const loadSettings = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const settings = await getSettings();
+      if (settings) {
+        setSettings({
+          darkMode: settings.darkMode,
+          language: settings.language,
+        });
+      } else {
+        setSettings({ darkMode: false, language: "en" });
+      }
+    } catch (error) {
+      console.log("Error loading settings:", error);
+    }
+  };
+  const loadProjects = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const list = await getProjects();
+      setProjects(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.error("Failed to load projects:", e);
+    }
+  };
+  const loadContentIdeas = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const list = await getContentIdeas();
+      setContentIdeas(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.error("Failed to load content ideas:", e);
+    }
+  };
+  const loadPrompts = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const list = await getPrompts();
+      setPrompts(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.error("Failed to load prompts:", e);
     }
   };
 
-  const toggleStep = (projectId: number, stepId: number) => {
-    setProjects(
-      projects.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              steps: p.steps.map((s) =>
-                s.id === stepId ? { ...s, done: !s.done } : s
-              ),
-            }
-          : p
-      )
-    );
-  };
+  loadUser();
+  loadSettings();
+  loadProjects();
+  loadContentIdeas();
+  loadPrompts();
+}, []);
+const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+const [projects, setProjects] = useState<Projects[]>([]);
+const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>([]);
 
-  const addProject = (project: Omit<(typeof projects)[0], "id">) => {
-    const newProject = {
-      ...project,
-      id: projects.length > 0 ? Math.max(...projects.map((p) => p.id)) + 1 : 1,
-    };
-    setProjects([...projects, newProject]);
-  };
+const [projectModalOpen, setProjectModalOpen] = useState(false);
+const [editingProject, setEditingProject] = useState<Projects | null>(null);
+const [contentModalOpen, setContentModalOpen] = useState(false);
+const [editingContent, setEditingContent] = useState<ContentIdea | null>(null);
+const [promptsModalOpen, setPromptsModalOpen] = useState(false);
+const [editingPrompts, setEditingPrompts] = useState<Prompt | null>(null);
+const [prompts, setPrompts] = useState<Prompt[] | null>(null);
 
-  const addContent = (content: Omit<(typeof contentIdeas)[0], "id">) => {
-    const newContent = {
-      ...content,
-      id:
-        contentIdeas.length > 0
-          ? Math.max(...contentIdeas.map((c) => c.id)) + 1
-          : 1,
-    };
-    setContentIdeas([...contentIdeas, newContent]);
-  };
+const ideas = prompts.map((p) => ({ id: p.id, text: p.text }));
 
-  const deleteProject = (id: number) => {
-    setProjects(projects.filter((p) => p.id !== id));
-  };
+const [chatMessages, setChatMessages] = useState<
+  Array<{ role: "user" | "assistant"; text: string }>
+>([]);
 
-  const toggleContent = (id: number) => {
-    setContentIdeas(
-      contentIdeas.map((c) => (c.id === id ? { ...c, done: !c.done } : c))
-    );
-  };
+const [chatInput, setChatInput] = useState("");
 
-  const addIdea = (text: string) => {
-    setPrompts((prev) => {
-      const nextOrder =
-        prev.length === 0 ? 0 : Math.max(...prev.map((p) => p.order)) + 1;
+  const handlers = useAppHandlers({
+    setUserInfo,
+    setIsAuthenticated,
+    setAuthPage,
+    projects,
+    setProjects,
+    setProjectModalOpen,
+    setEditingProject,
+    contentIdeas,
+    setContentIdeas,
+    setContentModalOpen,
+    setEditingContent,
+    prompts,
+    setPrompts,
+    setPromptsModalOpen,
+    setEditingPrompts,
+    settings,
+    setSettings,
+    userInfo,
+    chatMessages,
+    setChatMessages,
+    chatInput,
+    setChatInput,
+    welcomeMessage: t("ai.welcomeMessage"),
+  });
 
-      const newPrompt: Prompt = {
-        id: uuid(),
-        title: "",
-        text,
-        saved: new Date().toISOString().split("T")[0],
-        order: nextOrder,
-      };
+  useEffect(() => {
+    localStorage.setItem("darkMode", JSON.stringify(settings.darkMode));
+  }, [settings.darkMode]);
 
-      return [...prev, newPrompt];
-    });
-  };
+useEffect(() => {
+  setChatMessages([{ role: "assistant", text: t("ai.welcomeMessage") }]);
+}, [i18n.language, t]);
 
-  const deleteIdea = (id: string) => {
-    setPrompts((prev) =>
-      prev
-        .filter((p) => p.id !== id)
-        .map((p, index) => ({
-          ...p,
-          order: index,
-        }))
-    );
-  };
-
-  const reorderIdeas = (
-    reorderedIdeas: Array<{ id: string; text: string }>
-  ) => {
-    setPrompts((prev) =>
-      reorderedIdeas.map((idea, index) => {
-        const prompt = prev.find((p) => p.id === idea.id);
-
-        if (!prompt) {
-          throw new Error("Prompt not found during reorder");
-        }
-
-        return {
-          ...prompt,
-          order: index,
-        };
-      })
-    );
-  };
-
-  // Authentication handlers (mock for now - will be replaced with API calls)
-  const handleLogin = async (email: string, password: string) => {
-    // TODO: Replace with actual API call
-    console.log("Login attempt:", { email, password });
-
-    // Mock authentication - for now just set authenticated
-    // In production, this will call the backend API
-    localStorage.setItem("isAuthenticated", "true");
-    localStorage.setItem("userEmail", email);
-    setUserEmail(email);
-    setIsAuthenticated(true);
-  };
-
-  const handleRegister = async (
-    name: string,
-    email: string,
-    password: string
-  ) => {
-    // TODO: Replace with actual API call
-    console.log("Register attempt:", { name, email, password });
-
-    // Mock registration - for now just set authenticated
-    // In production, this will call the backend API
-    localStorage.setItem("isAuthenticated", "true");
-    localStorage.setItem("userEmail", email);
-    localStorage.setItem("userName", name);
-    setUserEmail(email);
-    setUserName(name);
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userProfilePicture");
-    setIsAuthenticated(false);
-    setUserEmail("");
-    setUserName("");
-    setUserProfilePicture(null);
-    setAuthPage("login");
-  };
-
-  // Profile handlers (mock for now - will be replaced with API calls)
-  const handleUpdateName = async (newName: string) => {
-    // TODO: Replace with actual API call
-    console.log("Update name:", newName);
-    localStorage.setItem("userName", newName);
-    setUserName(newName);
-  };
-
-  const handleUpdateEmail = async (newEmail: string) => {
-    // TODO: Replace with actual API call
-    console.log("Update email:", newEmail);
-    localStorage.setItem("userEmail", newEmail);
-    setUserEmail(newEmail);
-  };
-
-  const handleUpdatePassword = async (
-    currentPassword: string,
-    newPassword: string
-  ) => {
-    // TODO: Replace with actual API call
-    console.log("Update password:", { currentPassword, newPassword });
-    // In production, this will call the backend API
-  };
-
-  const handleUpdateProfilePicture = async (file: File) => {
-    // TODO: Replace with actual API call
-    console.log("Update profile picture:", file.name);
-
-    // Create preview URL
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const pictureUrl = reader.result as string;
-      localStorage.setItem("userProfilePicture", pictureUrl);
-      setUserProfilePicture(pictureUrl);
-    };
-    reader.readAsDataURL(file);
-
-    // In production, upload to server and get URL
-  };
-
-  const handleRemoveProfilePicture = async () => {
-    // TODO: Replace with actual API call
-    console.log("Remove profile picture");
-    localStorage.removeItem("userProfilePicture");
-    setUserProfilePicture(null);
-  };
+  const darkMode = settings.darkMode;
 
   // Show authentication pages if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <>
-        {authPage === "login" ? (
-          <LoginPage
-            darkMode={darkMode}
-            onLogin={handleLogin}
-            onSwitchToRegister={() => setAuthPage("register")}
-          />
-        ) : (
-          <RegisterPage
-            darkMode={darkMode}
-            onRegister={handleRegister}
-            onSwitchToLogin={() => setAuthPage("login")}
-          />
-        )}
-      </>
-    );
-  }
+if (!isAuthenticated && process.env.NODE_ENV !== "development") {
+  return (
+    <>
+      {authPage === "login" ? (
+        <LoginPage
+          darkMode={darkMode}
+          onLogin={handlers.handleLogin}
+          onSwitchToRegister={() => setAuthPage("register")}
+        />
+      ) : (
+        <RegisterPage
+          darkMode={darkMode}
+          onRegister={handlers.handleRegister}
+          onSwitchToLogin={() => setAuthPage("login")}
+        />
+      )}
+    </>
+  );
+}
 
   return (
     <div
@@ -343,12 +198,14 @@ export default function App() {
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        setDarkMode={setDarkMode}
+        setDarkMode={handlers.setDarkMode}
         darkMode={darkMode}
-        onLogout={handleLogout}
+        onLogout={handlers.handleLogout}
         onOpenProfile={() => setIsProfileModalOpen(true)}
-        userName={userName}
-        userProfilePicture={userProfilePicture || undefined}
+        userName={userInfo.name}
+        userProfilePicture={
+          getProfilePictureUrl(userInfo.profilePicture) ?? undefined
+        }
         appVersion={APP_VERSION}
       />
       {/* Main Content */}
@@ -356,8 +213,22 @@ export default function App() {
         <Header
           activeTab={activeTab}
           darkMode={darkMode}
-          onAddProject={addProject}
-          onAddContent={addContent}
+          isProjectModalOpen={projectModalOpen}
+          editingProject={editingProject}
+          onOpenProjectModal={() => handlers.openProjectModal(null)}
+          onCloseProjectModal={() => {
+            setProjectModalOpen(false);
+            setEditingProject(null);
+          }}
+          onSaveProject={handlers.saveProject}
+          isContentModalOpen={contentModalOpen}
+          editingContent={editingContent}
+          onOpenContentModal={() => handlers.openContentModal(null)}
+          onCloseContentModal={() => {
+            setContentModalOpen(false);
+            setEditingContent(null);
+          }}
+          onSaveContent={handlers.saveContent}
         />
 
         {/* Content Area */}
@@ -366,20 +237,24 @@ export default function App() {
             <ProjectsView
               projects={projects}
               darkMode={darkMode}
-              onToggleStep={toggleStep}
-              onDeleteProject={deleteProject}
+              onToggleStep={handlers.toggleStep}
+              onDeleteProject={handlers.deleteProject}
+              onEditProject={handlers.openProjectModal}
             />
           )}
 
           {activeTab === "content" && (
             <ContentView
+              onDeleteContent={handlers.deleteContent}
               contentIdeas={contentIdeas}
               darkMode={darkMode}
-              onToggleContent={toggleContent}
+              onToggleContent={handlers.toggleContent}
+              onEditContent={handlers.openContentModal}
+              onSaveContent={handlers.saveContent}
             />
           )}
 
-          {activeTab === "ai" && (
+          {/* {activeTab === "ai" && (
             <AiAssistantView
               chatMessages={chatMessages}
               chatInput={chatInput}
@@ -387,15 +262,16 @@ export default function App() {
               onInputChange={setChatInput}
               onSendMessage={addChatMessage}
             />
-          )}
+          )} */}
 
           {activeTab === "gallery" && (
             <GalleryView
               darkMode={darkMode}
               ideas={ideas}
-              onAddIdea={addIdea}
-              onDeleteIdea={deleteIdea}
-              onReorderIdeas={reorderIdeas}
+              onAddIdea={handlers.addIdea}
+              onEditIdea={handlers.editIdea}
+              onDeleteIdea={handlers.deleteIdea}
+              onReorderIdeas={handlers.reorderIdeas}
             />
           )}
         </div>
@@ -406,14 +282,14 @@ export default function App() {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         darkMode={darkMode}
-        currentName={userName}
-        currentEmail={userEmail}
-        currentProfilePicture={userProfilePicture || undefined}
-        onUpdateName={handleUpdateName}
-        onUpdateEmail={handleUpdateEmail}
-        onUpdatePassword={handleUpdatePassword}
-        onUpdateProfilePicture={handleUpdateProfilePicture}
-        onRemoveProfilePicture={handleRemoveProfilePicture}
+        currentName={userInfo.name}
+        currentEmail={userInfo.email}
+        currentProfilePicture={userInfo.profilePicture || undefined}
+        onUpdateName={handlers.handleUpdateName}
+        onUpdateEmail={handlers.handleUpdateEmail}
+        onUpdatePassword={handlers.handleUpdatePassword}
+        onUpdateProfilePicture={handlers.handleUpdateProfilePicture}
+        onRemoveProfilePicture={handlers.handleRemoveProfilePicture}
       />
     </div>
   );

@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
-interface Content {
-  id: number;
-  title: string;
-  platform: string;
-  deadline: string;
-  done: boolean;
-  details?: string;
-}
+import { Platform } from "../services/api";
+import type { ContentIdea } from "../hooks/useAppHandlers";
 
 interface AddContentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (content: Omit<Content, "id">, id?: number) => void;
+  onSave: (content: Omit<ContentIdea, "id">, id?: string) => void;
   darkMode: boolean;
-  initialContent?: Content | null;
+  initialContent?: ContentIdea | null;
 }
 
 export default function AddContentModal({
@@ -28,24 +21,24 @@ export default function AddContentModal({
 }: AddContentModalProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
-  const [platform, setPlatform] = useState("youtube");
+  const [platform, setPlatform] = useState<Platform>(Platform.YOUTUBE);
   const [deadline, setDeadline] = useState("");
   const [details, setDetails] = useState("");
 
   useEffect(() => {
     if (!isOpen) {
       setTitle("");
-      setPlatform("youtube");
+      setPlatform(Platform.YOUTUBE);
       setDeadline("");
       setDetails("");
     } else if (initialContent) {
       setTitle(initialContent.title);
-      setPlatform(initialContent.platform);
+      setPlatform(initialContent.platform ?? Platform.YOUTUBE);
       setDeadline(initialContent.deadline);
       setDetails(initialContent.details ?? "");
     } else {
       setTitle("");
-      setPlatform("youtube");
+      setPlatform(Platform.YOUTUBE);
       setDeadline("");
       setDetails("");
     }
@@ -64,6 +57,7 @@ export default function AddContentModal({
           deadline: deadline || new Date().toISOString().split("T")[0],
           done: initialContent?.done ?? false,
           details: details.trim(),
+          order: initialContent?.order ?? 0,
         },
         initialContent?.id,
       );
@@ -73,7 +67,7 @@ export default function AddContentModal({
 
   const handleClose = () => {
     setTitle("");
-    setPlatform("youtube");
+    setPlatform(Platform.YOUTUBE);
     setDeadline("");
     setDetails("");
     onClose();
@@ -135,26 +129,26 @@ export default function AddContentModal({
               </label>
               <select
                 value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
+                onChange={(e) => setPlatform(e.target.value as Platform)}
                 className={`w-full px-4 py-2 rounded-lg border ${
                   darkMode
                     ? "bg-gray-700 border-gray-600 text-white"
                     : "bg-white border-gray-300 text-gray-800"
                 } focus:outline-none focus:ring-2 focus:ring-purple-500`}
               >
-                <option value="youtube">
+                <option value={Platform.YOUTUBE}>
                   {t("content.addContent.platformOptions.youtube")}
                 </option>
-                <option value="tiktok">
+                <option value={Platform.TIKTOK}>
                   {t("content.addContent.platformOptions.tiktok")}
                 </option>
-                <option value="instagram">
+                <option value={Platform.INSTAGRAM}>
                   {t("content.addContent.platformOptions.instagram")}
                 </option>
-                <option value="twitter">
+                <option value={Platform.TWITTER}>
                   {t("content.addContent.platformOptions.twitter")}
                 </option>
-                <option value="facebook">
+                <option value={Platform.FACEBOOK}>
                   {t("content.addContent.platformOptions.facebook")}
                 </option>
               </select>

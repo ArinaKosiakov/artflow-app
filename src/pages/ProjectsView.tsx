@@ -3,14 +3,15 @@ import { FolderOpen } from 'lucide-react';
 import ProjectCard from '../components/ProjectCard';
 import { useTranslation } from 'react-i18next';
 
+// Project/Step types support string ids from API (see BACKEND_PLAN 3.3)
 interface Step {
-  id: number;
+  id: string;
   text: string;
   done: boolean;
 }
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   deadline: string;
@@ -21,8 +22,8 @@ interface Project {
 interface ProjectsViewProps {
   projects: Project[];
   darkMode: boolean;
-  onToggleStep: (projectId: number, stepId: number) => void;
-  onDeleteProject: (id: number) => void;
+  onToggleStep: (projectId: string, stepId: string) => void;
+  onDeleteProject: (id: string) => void;
   onEditProject: (project: Project) => void;
 }
 

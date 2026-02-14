@@ -1,6 +1,6 @@
 export type Prompt = {
   id: string;
-  title?: string;
+  title: string;
   text: string;
   order: number;
   saved: string;

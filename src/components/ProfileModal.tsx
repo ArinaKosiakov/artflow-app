@@ -1,6 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { X, User, Mail, Lock, Camera, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { X, User, Mail, Lock, Trash2 } from "lucide-react";
+import {
+  AVAILABLE_PROFILE_PICTURES,
+  getProfilePictureUrl,
+} from "../lib/profilePictures";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -8,11 +12,16 @@ interface ProfileModalProps {
   darkMode: boolean;
   currentName?: string;
   currentEmail?: string;
+  /** Profile picture ID (e.g. "uuid.png") from server or filename (e.g. "1.png") from local assets */
   currentProfilePicture?: string;
   onUpdateName?: (newName: string) => Promise<void>;
   onUpdateEmail?: (newEmail: string) => Promise<void>;
-  onUpdatePassword?: (currentPassword: string, newPassword: string) => Promise<void>;
-  onUpdateProfilePicture?: (file: File) => Promise<void>;
+  onUpdatePassword?: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<void>;
+  /** Updated to accept File for upload */
+  onUpdateProfilePicture?: (file: File | string) => Promise<void>;
   onRemoveProfilePicture?: () => Promise<void>;
 }
 
@@ -20,8 +29,8 @@ export default function ProfileModal({
   isOpen,
   onClose,
   darkMode,
-  currentName = '',
-  currentEmail = '',
+  currentName = "",
+  currentEmail = "",
   currentProfilePicture,
   onUpdateName,
   onUpdateEmail,
@@ -30,37 +39,41 @@ export default function ProfileModal({
   onRemoveProfilePicture,
 }: ProfileModalProps) {
   const { t } = useTranslation();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const [activeTab, setActiveTab] = useState<'picture' | 'email' | 'password'>('picture');
-  const [profilePicture, setProfilePicture] = useState<string | null>(currentProfilePicture || null);
-  
+
+  const [activeTab, setActiveTab] = useState<"picture" | "email" | "password">(
+    "picture",
+  );
+  /** Current selection: filename (e.g. "1.png") or null */
+  const [profilePicture, setProfilePicture] = useState<string | null>(
+    currentProfilePicture || null,
+  );
+
   // Name state
   const [name, setName] = useState(currentName);
   const [nameErrors, setNameErrors] = useState<{ name?: string }>({});
   const [isUpdatingName, setIsUpdatingName] = useState(false);
-  
+
   // Update name when currentName changes
   useEffect(() => {
     setName(currentName);
   }, [currentName]);
-  
+
   // Email state
-  const [newEmail, setNewEmail] = useState('');
+  const [newEmail, setNewEmail] = useState("");
   const [emailErrors, setEmailErrors] = useState<{ email?: string }>({});
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
-  
+
   // Password state
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordErrors, setPasswordErrors] = useState<{
     currentPassword?: string;
     newPassword?: string;
     confirmPassword?: string;
   }>({});
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  
+
   // Picture state
   const [isUpdatingPicture, setIsUpdatingPicture] = useState(false);
 
@@ -68,11 +81,11 @@ export default function ProfileModal({
 
   const validateName = () => {
     const errors: { name?: string } = {};
-    
+
     if (!name.trim()) {
-      errors.name = t('profile.errors.nameRequired');
+      errors.name = t("profile.errors.nameRequired");
     }
-    
+
     setNameErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -85,47 +98,43 @@ export default function ProfileModal({
       await onUpdateName(name.trim());
       // Success message could be shown here
     } catch (error) {
-      console.error('Error updating name:', error);
+      console.error("Error updating name:", error);
     } finally {
       setIsUpdatingName(false);
     }
   };
 
-  const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size must be less than 5MB');
-      return;
-    }
-
-    // Preview image
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfilePicture(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload picture
+  const handleSelectPicture = async (filename: string) => {
+    setProfilePicture(filename);
     if (onUpdateProfilePicture) {
       setIsUpdatingPicture(true);
       try {
-        await onUpdateProfilePicture(file);
-        // Success message could be shown here
+        await onUpdateProfilePicture(filename);
       } catch (error) {
-        console.error('Error updating profile picture:', error);
+        console.error("Error updating profile picture:", error);
         setProfilePicture(currentProfilePicture || null);
       } finally {
         setIsUpdatingPicture(false);
       }
+    }
+  };
+
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !onUpdateProfilePicture) return;
+
+    setIsUpdatingPicture(true);
+    try {
+      await onUpdateProfilePicture(file);
+      // The pictureId will be updated by the parent component via currentProfilePicture prop
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+    } finally {
+      setIsUpdatingPicture(false);
+      // Reset file input
+      event.target.value = "";
     }
   };
 
@@ -136,7 +145,7 @@ export default function ProfileModal({
         await onRemoveProfilePicture();
         setProfilePicture(null);
       } catch (error) {
-        console.error('Error removing profile picture:', error);
+        console.error("Error removing profile picture:", error);
       } finally {
         setIsUpdatingPicture(false);
       }
@@ -145,15 +154,15 @@ export default function ProfileModal({
 
   const validateEmail = () => {
     const errors: { email?: string } = {};
-    
+
     if (!newEmail.trim()) {
-      errors.email = t('profile.errors.emailRequired');
+      errors.email = t("profile.errors.emailRequired");
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-      errors.email = t('profile.errors.invalidEmail');
+      errors.email = t("profile.errors.invalidEmail");
     } else if (newEmail === currentEmail) {
-      errors.email = t('profile.errors.sameEmail');
+      errors.email = t("profile.errors.sameEmail");
     }
-    
+
     setEmailErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -164,11 +173,11 @@ export default function ProfileModal({
     setIsUpdatingEmail(true);
     try {
       await onUpdateEmail(newEmail);
-      setNewEmail('');
+      setNewEmail("");
       setEmailErrors({});
       // Success message could be shown here
     } catch (error) {
-      console.error('Error updating email:', error);
+      console.error("Error updating email:", error);
     } finally {
       setIsUpdatingEmail(false);
     }
@@ -182,19 +191,19 @@ export default function ProfileModal({
     } = {};
 
     if (!currentPassword) {
-      errors.currentPassword = t('profile.errors.currentPasswordRequired');
+      errors.currentPassword = t("profile.errors.currentPasswordRequired");
     }
 
     if (!newPassword) {
-      errors.newPassword = t('profile.errors.newPasswordRequired');
+      errors.newPassword = t("profile.errors.newPasswordRequired");
     } else if (newPassword.length < 8) {
-      errors.newPassword = t('profile.errors.passwordTooShort');
+      errors.newPassword = t("profile.errors.passwordTooShort");
     }
 
     if (!confirmPassword) {
-      errors.confirmPassword = t('profile.errors.newPasswordRequired');
+      errors.confirmPassword = t("profile.errors.newPasswordRequired");
     } else if (newPassword !== confirmPassword) {
-      errors.confirmPassword = t('profile.errors.passwordMismatch');
+      errors.confirmPassword = t("profile.errors.passwordMismatch");
     }
 
     setPasswordErrors(errors);
@@ -207,25 +216,25 @@ export default function ProfileModal({
     setIsUpdatingPassword(true);
     try {
       await onUpdatePassword(currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
       setPasswordErrors({});
       // Success message could be shown here
     } catch (error) {
-      console.error('Error updating password:', error);
+      console.error("Error updating password:", error);
     } finally {
       setIsUpdatingPassword(false);
     }
   };
 
   const handleClose = () => {
-    setActiveTab('picture');
+    setActiveTab("picture");
     setName(currentName);
-    setNewEmail('');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    setNewEmail("");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
     setNameErrors({});
     setEmailErrors({});
     setPasswordErrors({});
@@ -235,71 +244,79 @@ export default function ProfileModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col`}>
+      <div
+        className={`${darkMode ? "bg-gray-800" : "bg-white"} rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col`}
+      >
         {/* Header */}
-        <div className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} px-6 py-4 flex justify-between items-center border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-          <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-            {t('profile.title')}
+        <div
+          className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} px-6 py-4 flex justify-between items-center border-b ${darkMode ? "border-gray-600" : "border-gray-200"}`}
+        >
+          <h2
+            className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-800"}`}
+          >
+            {t("profile.title")}
           </h2>
           <button
             onClick={handleClose}
-            className={`${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
+            className={`${darkMode ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-700"} transition-colors`}
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} px-6 py-2 flex gap-2 border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+        <div
+          className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} px-6 py-2 flex gap-2 border-b ${darkMode ? "border-gray-600" : "border-gray-200"}`}
+        >
           <button
-            onClick={() => setActiveTab('picture')}
+            onClick={() => setActiveTab("picture")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'picture'
-                ? 'bg-purple-500 text-white'
+              activeTab === "picture"
+                ? "bg-purple-500 text-white"
                 : darkMode
-                ? 'text-gray-300 hover:bg-gray-600'
-                : 'text-gray-600 hover:bg-gray-100'
+                  ? "text-gray-300 hover:bg-gray-600"
+                  : "text-gray-600 hover:bg-gray-100"
             }`}
           >
-            {t('profile.profilePicture')}
+            {t("profile.profilePicture")}
           </button>
           <button
-            onClick={() => setActiveTab('email')}
+            onClick={() => setActiveTab("email")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'email'
-                ? 'bg-purple-500 text-white'
+              activeTab === "email"
+                ? "bg-purple-500 text-white"
                 : darkMode
-                ? 'text-gray-300 hover:bg-gray-600'
-                : 'text-gray-600 hover:bg-gray-100'
+                  ? "text-gray-300 hover:bg-gray-600"
+                  : "text-gray-600 hover:bg-gray-100"
             }`}
           >
-            {t('profile.changeEmail')}
+            {t("profile.changeEmail")}
           </button>
           <button
-            onClick={() => setActiveTab('password')}
+            onClick={() => setActiveTab("password")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'password'
-                ? 'bg-purple-500 text-white'
+              activeTab === "password"
+                ? "bg-purple-500 text-white"
                 : darkMode
-                ? 'text-gray-300 hover:bg-gray-600'
-                : 'text-gray-600 hover:bg-gray-100'
+                  ? "text-gray-300 hover:bg-gray-600"
+                  : "text-gray-600 hover:bg-gray-100"
             }`}
           >
-            {t('profile.changePassword')}
+            {t("profile.changePassword")}
           </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {/* Profile Picture Tab */}
-          {activeTab === 'picture' && (
+          {activeTab === "picture" && (
             <div className="space-y-6">
               <div className="flex flex-col items-center">
                 <div className="relative">
                   <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                     {profilePicture ? (
                       <img
-                        src={profilePicture}
+                        src={getProfilePictureUrl(profilePicture) ?? ""}
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
@@ -313,46 +330,88 @@ export default function ProfileModal({
                     </div>
                   )}
                 </div>
-                <div className="mt-4 flex gap-3">
+                <p
+                  className={`mt-2 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                >
+                  {t("profile.choosePicture")}
+                </p>
+                <div className="grid grid-cols-5 gap-3 w-full max-w-xs">
+                  {AVAILABLE_PROFILE_PICTURES.map((filename) => {
+                    const url = getProfilePictureUrl(filename);
+                    const isSelected = profilePicture === filename;
+                    if (!url) return null;
+                    return (
+                      <button
+                        key={filename}
+                        type="button"
+                        onClick={() => handleSelectPicture(filename)}
+                        disabled={isUpdatingPicture}
+                        className={`w-12 h-12 rounded-full overflow-hidden border-2 flex-shrink-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isSelected
+                            ? "border-purple-500 ring-2 ring-purple-300"
+                            : darkMode
+                              ? "border-gray-600 hover:border-gray-500"
+                              : "border-gray-300 hover:border-gray-400"
+                        }`}
+                      >
+                        <img
+                          src={url}
+                          alt={filename}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* <div className="mt-4">
+                  <label
+                    htmlFor="file-upload"
+                    className={`cursor-pointer px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2 ${
+                      darkMode
+                        ? "bg-gray-700 text-purple-400 hover:bg-gray-600"
+                        : "bg-gray-100 text-purple-500 hover:bg-gray-200"
+                    } ${isUpdatingPicture ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <User className="w-4 h-4" />
+                    {t("profile.uploadCustomPicture") ||
+                      "Upload Custom Picture"}
+                  </label>
                   <input
-                    ref={fileInputRef}
+                    id="file-upload"
                     type="file"
-                    accept="image/*"
-                    onChange={handlePictureChange}
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={handleFileUpload}
+                    disabled={isUpdatingPicture}
                     className="hidden"
                   />
+                </div> */}
+                {profilePicture && (
                   <button
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={handleRemovePicture}
                     disabled={isUpdatingPicture}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className={`mt-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                      darkMode
+                        ? "bg-gray-700 text-red-400 hover:bg-gray-600"
+                        : "bg-gray-100 text-red-500 hover:bg-gray-200"
+                    }`}
                   >
-                    <Camera className="w-4 h-4" />
-                    {t('profile.changePicture')}
+                    <Trash2 className="w-4 h-4" />
+                    {t("profile.removePicture")}
                   </button>
-                  {profilePicture && (
-                    <button
-                      onClick={handleRemovePicture}
-                      disabled={isUpdatingPicture}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
-                        darkMode
-                          ? 'bg-gray-700 text-red-400 hover:bg-gray-600'
-                          : 'bg-gray-100 text-red-500 hover:bg-gray-200'
-                      }`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      {t('profile.removePicture')}
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
-              
+
               {/* Name Field */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('profile.name')}
+                <label
+                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {t("profile.name")}
                 </label>
                 <div className="relative">
-                  <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <User
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                  />
                   <input
                     type="text"
                     value={name}
@@ -360,13 +419,13 @@ export default function ProfileModal({
                       setName(e.target.value);
                       if (nameErrors.name) setNameErrors({});
                     }}
-                    placeholder={t('profile.namePlaceholder')}
+                    placeholder={t("profile.namePlaceholder")}
                     className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                       nameErrors.name
-                        ? 'border-red-500'
+                        ? "border-red-500"
                         : darkMode
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                     } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                   />
                 </div>
@@ -374,37 +433,49 @@ export default function ProfileModal({
                   <p className="mt-1 text-sm text-red-500">{nameErrors.name}</p>
                 )}
               </div>
-              
+
               {/* Save Name Button */}
               {onUpdateName && (
                 <button
                   onClick={handleUpdateName}
-                  disabled={isUpdatingName || !name.trim() || name.trim() === currentName}
+                  disabled={
+                    isUpdatingName ||
+                    !name.trim() ||
+                    name.trim() === currentName
+                  }
                   className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isUpdatingName ? 'Saving...' : t('profile.save')}
+                  {isUpdatingName ? "Saving..." : t("profile.save")}
                 </button>
               )}
             </div>
           )}
 
           {/* Email Tab */}
-          {activeTab === 'email' && (
+          {activeTab === "email" && (
             <div className="space-y-6">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('profile.currentEmail')}
+                <label
+                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {t("profile.currentEmail")}
                 </label>
-                <div className={`px-4 py-3 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
+                <div
+                  className={`px-4 py-3 rounded-lg ${darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}
+                >
                   {currentEmail}
                 </div>
               </div>
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('profile.newEmail')}
+                <label
+                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {t("profile.newEmail")}
                 </label>
                 <div className="relative">
-                  <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <Mail
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                  />
                   <input
                     type="email"
                     value={newEmail}
@@ -412,18 +483,20 @@ export default function ProfileModal({
                       setNewEmail(e.target.value);
                       if (emailErrors.email) setEmailErrors({});
                     }}
-                    placeholder={t('profile.emailPlaceholder')}
+                    placeholder={t("profile.emailPlaceholder")}
                     className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                       emailErrors.email
-                        ? 'border-red-500'
+                        ? "border-red-500"
                         : darkMode
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                     } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                   />
                 </div>
                 {emailErrors.email && (
-                  <p className="mt-1 text-sm text-red-500">{emailErrors.email}</p>
+                  <p className="mt-1 text-sm text-red-500">
+                    {emailErrors.email}
+                  </p>
                 )}
               </div>
               <button
@@ -431,79 +504,112 @@ export default function ProfileModal({
                 disabled={isUpdatingEmail || !newEmail.trim()}
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isUpdatingEmail ? 'Updating...' : t('profile.save')}
+                {isUpdatingEmail ? "Updating..." : t("profile.save")}
               </button>
             </div>
           )}
 
           {/* Password Tab */}
-          {activeTab === 'password' && (
+          {activeTab === "password" && (
             <div className="space-y-6">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('profile.currentPassword')}
+                <label
+                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {t("profile.currentPassword")}
                 </label>
                 <div className="relative">
-                  <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <Lock
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                  />
                   <input
                     type="password"
                     value={currentPassword}
                     onChange={(e) => {
                       setCurrentPassword(e.target.value);
-                      if (passwordErrors.currentPassword) setPasswordErrors({ ...passwordErrors, currentPassword: undefined });
+                      if (passwordErrors.currentPassword)
+                        setPasswordErrors({
+                          ...passwordErrors,
+                          currentPassword: undefined,
+                        });
                     }}
-                    placeholder={t('profile.currentPasswordPlaceholder')}
+                    placeholder={t("profile.currentPasswordPlaceholder")}
                     className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                       passwordErrors.currentPassword
-                        ? 'border-red-500'
+                        ? "border-red-500"
                         : darkMode
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                     } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                   />
                 </div>
                 {passwordErrors.currentPassword && (
-                  <p className="mt-1 text-sm text-red-500">{passwordErrors.currentPassword}</p>
+                  <p className="mt-1 text-sm text-red-500">
+                    {passwordErrors.currentPassword}
+                  </p>
                 )}
               </div>
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('profile.newPassword')}
+                <label
+                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {t("profile.newPassword")}
                 </label>
                 <div className="relative">
-                  <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <Lock
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                  />
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => {
                       setNewPassword(e.target.value);
-                      if (passwordErrors.newPassword) setPasswordErrors({ ...passwordErrors, newPassword: undefined });
-                      if (passwordErrors.confirmPassword && e.target.value !== confirmPassword) {
-                        setPasswordErrors({ ...passwordErrors, confirmPassword: t('profile.errors.passwordMismatch') });
+                      if (passwordErrors.newPassword)
+                        setPasswordErrors({
+                          ...passwordErrors,
+                          newPassword: undefined,
+                        });
+                      if (
+                        passwordErrors.confirmPassword &&
+                        e.target.value !== confirmPassword
+                      ) {
+                        setPasswordErrors({
+                          ...passwordErrors,
+                          confirmPassword: t("profile.errors.passwordMismatch"),
+                        });
                       } else if (passwordErrors.confirmPassword) {
-                        setPasswordErrors({ ...passwordErrors, confirmPassword: undefined });
+                        setPasswordErrors({
+                          ...passwordErrors,
+                          confirmPassword: undefined,
+                        });
                       }
                     }}
-                    placeholder={t('profile.passwordPlaceholder')}
+                    placeholder={t("profile.passwordPlaceholder")}
                     className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                       passwordErrors.newPassword
-                        ? 'border-red-500'
+                        ? "border-red-500"
                         : darkMode
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                     } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                   />
                 </div>
                 {passwordErrors.newPassword && (
-                  <p className="mt-1 text-sm text-red-500">{passwordErrors.newPassword}</p>
+                  <p className="mt-1 text-sm text-red-500">
+                    {passwordErrors.newPassword}
+                  </p>
                 )}
               </div>
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('profile.confirmNewPassword')}
+                <label
+                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {t("profile.confirmNewPassword")}
                 </label>
                 <div className="relative">
-                  <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <Lock
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                  />
                   <input
                     type="password"
                     value={confirmPassword}
@@ -511,32 +617,47 @@ export default function ProfileModal({
                       setConfirmPassword(e.target.value);
                       if (passwordErrors.confirmPassword) {
                         if (e.target.value !== newPassword) {
-                          setPasswordErrors({ ...passwordErrors, confirmPassword: t('profile.errors.passwordMismatch') });
+                          setPasswordErrors({
+                            ...passwordErrors,
+                            confirmPassword: t(
+                              "profile.errors.passwordMismatch",
+                            ),
+                          });
                         } else {
-                          setPasswordErrors({ ...passwordErrors, confirmPassword: undefined });
+                          setPasswordErrors({
+                            ...passwordErrors,
+                            confirmPassword: undefined,
+                          });
                         }
                       }
                     }}
-                    placeholder={t('profile.confirmPasswordPlaceholder')}
+                    placeholder={t("profile.confirmPasswordPlaceholder")}
                     className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                       passwordErrors.confirmPassword
-                        ? 'border-red-500'
+                        ? "border-red-500"
                         : darkMode
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                     } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                   />
                 </div>
                 {passwordErrors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-500">{passwordErrors.confirmPassword}</p>
+                  <p className="mt-1 text-sm text-red-500">
+                    {passwordErrors.confirmPassword}
+                  </p>
                 )}
               </div>
               <button
                 onClick={handleUpdatePassword}
-                disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
+                disabled={
+                  isUpdatingPassword ||
+                  !currentPassword ||
+                  !newPassword ||
+                  !confirmPassword
+                }
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isUpdatingPassword ? 'Updating...' : t('profile.save')}
+                {isUpdatingPassword ? "Updating..." : t("profile.save")}
               </button>
             </div>
           )}
@@ -545,4 +666,3 @@ export default function ProfileModal({
     </div>
   );
 }
-

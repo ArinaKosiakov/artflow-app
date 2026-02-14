@@ -3,13 +3,13 @@ import { X, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface Step {
-  id: number;
+  id: string;
   text: string;
   done: boolean;
 }
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   deadline: string;
@@ -20,7 +20,12 @@ interface Project {
 interface AddProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (project: Omit<Project, "id">, id?: number) => void;
+  onSave: (
+    project: Omit<Project, "id"> & {
+      steps: Array<{ id?: string; text: string; done: boolean }>;
+    },
+    id?: string,
+  ) => void;
   darkMode: boolean;
   initialProject?: Project | null;
 }
@@ -38,7 +43,7 @@ export default function AddProjectModal({
   const [deadline, setDeadline] = useState("");
   const [status, setStatus] = useState("not-started");
   const [steps, setSteps] = useState<
-    Array<{ id: number; text: string; done: boolean }>
+    Array<{ id: string; text: string; done: boolean }>
   >([]);
   const [stepText, setStepText] = useState("");
 
@@ -53,8 +58,12 @@ export default function AddProjectModal({
     } else if (initialProject) {
       setTitle(initialProject.title);
       setDescription(initialProject.description);
-      setDeadline(initialProject.deadline);
-      setStatus(initialProject.status);
+      setDeadline(
+        initialProject.deadline
+          ? String(initialProject.deadline).split("T")[0]
+          : "",
+      );
+      setStatus(initialProject.status?.replace(/_/g, "-") || "not-started");
       setSteps(initialProject.steps.map((s) => ({ ...s })));
     } else {
       setTitle("");
@@ -72,12 +81,15 @@ export default function AddProjectModal({
 
   const handleAddStep = () => {
     if (stepText.trim()) {
-      setSteps([...steps, { id: Date.now(), text: stepText, done: false }]);
+      setSteps([
+        ...steps,
+        { id: String(Date.now()), text: stepText, done: false },
+      ]);
       setStepText("");
     }
   };
 
-  const handleRemoveStep = (id: number) => {
+  const handleRemoveStep = (id: string) => {
     setSteps(steps.filter((step) => step.id !== id));
   };
 

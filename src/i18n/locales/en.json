@@ -136,6 +136,7 @@
   "profile": {
     "title": "Profile Settings",
     "profilePicture": "Profile Picture",
+    "choosePicture": "Choose a picture",
     "changePicture": "Change Picture",
     "removePicture": "Remove Picture",
     "name": "Name",
