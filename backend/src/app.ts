@@ -15,11 +15,32 @@ dotenv.config();
 
 const app: Express = express();
 
-// CORS configuration
+// CORS configuration: allow browser (localhost:3000) and Electron (null / file origin)
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+if (!allowedOrigins.length) allowedOrigins.push('http://localhost:3000');
+
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (
+    origin: string | undefined,
+    cb: (err: Error | null, allow?: boolean) => void,
+  ) => {
+    // Allow requests with no origin (e.g. Electron, Postman, same-origin)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    // In non-production, allow any localhost origin (e.g. Electron dev server)
+    if (
+      process.env.NODE_ENV !== "production" &&
+      origin?.startsWith("http://localhost:")
+    ) {
+      return cb(null, true);
+    }
+    cb(new Error("Not allowed by CORS"));
+  },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 // Middleware

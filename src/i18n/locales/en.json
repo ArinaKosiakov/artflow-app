@@ -2,7 +2,11 @@
   "common": {
     "edit": "Edit",
     "delete": "Delete",
-    "drag": "Drag to reorder"
+    "drag": "Drag to reorder",
+    "clear": "Clear",
+    "filterByName": "Filter by name",
+    "deadlineFrom": "Deadline from",
+    "deadlineTo": "Deadline to"
   },
   "app": {
     "name": "ArtFlow",
@@ -32,6 +36,7 @@
     "newContent": "New Content"
   },
   "projects": {
+    "loading": "Loading projects...",
     "noProjects": "No projects yet. Create your first one!",
     "due": "Due:",
     "progress": "Progress",
@@ -61,6 +66,7 @@
     "editContent": {
       "title": "Edit Content"
     },
+    "noContent": "No content yet. Create your first one!",
     "addContent": {
       "title": "Add New Content",
       "contentTitle": "Content Title",
@@ -128,6 +134,7 @@
       "emailRequired": "Email is required",
       "passwordRequired": "Password is required",
       "nameRequired": "Name is required",
+      "nameTooShort": "Name must be at least 3 characters",
       "passwordMismatch": "Passwords do not match",
       "passwordTooShort": "Password must be at least 8 characters",
       "invalidEmail": "Invalid email address"

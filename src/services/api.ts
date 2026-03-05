@@ -1,19 +1,16 @@
-import { Settings } from "electron";
+declare global {
+  interface Window {
+    __ARTFLOW_API_URL__?: string;
+  }
+}
 
 const getApiBaseUrl = (): string => {
-  if (typeof window !== "undefined" && (window as any).__ARTFLOW_API_URL__) {
-    return (window as any).__ARTFLOW_API_URL__;
+  if (typeof window !== "undefined" && window.__ARTFLOW_API_URL__) {
+    return window.__ARTFLOW_API_URL__;
   }
-  return "http://localhost:3001";
+  // Use 127.0.0.1 so Electron reliably reaches the backend (avoids IPv6 localhost issues)
+  return "http://127.0.0.1:3001";
 };
-
-/**
- * Get profile picture URL from picture ID
- */
-export function getProfilePictureUrl(pictureId: string | null): string | undefined {
-  if (!pictureId) return undefined;
-  return `${getApiBaseUrl()}/uploads/profilePictures/${pictureId}`;
-}
 
 const AUTH_TOKEN_KEY = "authToken";
 
@@ -29,9 +26,8 @@ export function clearStoredToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
-
 /**
- * Auth 
+ * Auth
  */
 export interface AuthUser {
   id: string;
@@ -90,15 +86,24 @@ export async function authMe(): Promise<AuthUser | null> {
 
 export async function login(
   email: string,
-  password: string
+  password: string,
 ): Promise<{ user: AuthUser; token: string }> {
-  const res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (err) {
+    const msg =
+      err instanceof TypeError && (err as Error).message?.includes("fetch")
+        ? "Cannot reach server.s"
+        : (err as Error).message || "Login failed";
+    throw new Error(msg);
+  }
 
-  const json = await res.json();
+  const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(json?.error || "Login failed");
   }
@@ -111,15 +116,24 @@ export async function login(
 export async function register(
   name: string,
   email: string,
-  password: string
+  password: string,
 ): Promise<{ user: AuthUser; token: string }> {
-  const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+  } catch (err) {
+    const msg =
+      err instanceof TypeError && (err as Error).message?.includes("fetch")
+        ? "Cannot reach server."
+        : (err as Error).message || "Registration failed";
+    throw new Error(msg);
+  }
 
-  const json = await res.json();
+  const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(json?.error || "Registration failed");
   }
@@ -129,8 +143,8 @@ export async function register(
   return { user: json.data.user, token: json.data.token };
 }
 /**
- * Profile 
- */ 
+ * Profile
+ */
 export interface UserProfile {
   name: string;
   email: string;
@@ -196,26 +210,6 @@ export async function updatePassword(
   return json;
 }
 
-export async function uploadProfilePicture(
-  file: File,
-): Promise<{ pictureId: string }> {
-  const token = getStoredToken();
-  const formData = new FormData();
-  formData.append("profilePicture", file);
-
-  const res = await fetch(`${getApiBaseUrl()}/api/profile/picture`, {
-    method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: formData,
-  });
-  const json = await res.json();
-  if (!res.ok) {
-    throw new Error(json?.error || "Profile picture upload failed");
-  }
-  return json.data;
-}
 export async function deleteProfile(): Promise<UserProfile> {
   const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/profile`, {
@@ -233,12 +227,12 @@ export async function deleteProfile(): Promise<UserProfile> {
 }
 
 /**
- * Settings 
- */  
+ * Settings
+ */
 export interface UserSettings {
   darkMode: boolean;
   language: string;
-}  
+}
 
 export async function getSettings(): Promise<UserSettings> {
   const token = getStoredToken();
@@ -289,7 +283,7 @@ export async function deleteSettings(
 }
 /**
  * Prompts
- */ 
+ */
 export interface Prompts {
   id: string;
   title: string;
@@ -399,7 +393,7 @@ export async function reorderPrompts(
 }
 /**
  * Content Ideas
- */ 
+ */
 export enum Platform {
   YOUTUBE = "youtube",
   TIKTOK = "tiktok",
@@ -419,7 +413,7 @@ interface ContentIdeas {
 
 export async function getContentIdeas(): Promise<ContentIdeas[]> {
   const token = getStoredToken();
-  const res = await fetch(`${getApiBaseUrl()}/api/ideas`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/content-ideas`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -432,9 +426,9 @@ export async function getContentIdeas(): Promise<ContentIdeas[]> {
   }
   return Array.isArray(json.data) ? json.data : [];
 }
-export async function getContentIdeaById(id:string): Promise<ContentIdeas> {
+export async function getContentIdeaById(id: string): Promise<ContentIdeas> {
   const token = getStoredToken();
-  const res = await fetch(`${getApiBaseUrl()}/api/ideas/${id}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/content-ideas/${id}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -447,9 +441,11 @@ export async function getContentIdeaById(id:string): Promise<ContentIdeas> {
   }
   return json.data;
 }
-export async function createContentIdea(contentIdea:ContentIdeas): Promise<ContentIdeas> {
+export async function createContentIdea(
+  contentIdea: ContentIdeas,
+): Promise<ContentIdeas> {
   const token = getStoredToken();
-  const res = await fetch(`${getApiBaseUrl()}/api/ideas`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/content-ideas`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -463,16 +459,21 @@ export async function createContentIdea(contentIdea:ContentIdeas): Promise<Conte
   }
   return json.data;
 }
-export async function updateContentIdea(contentIdea:ContentIdeas): Promise<ContentIdeas> {
+export async function updateContentIdea(
+  contentIdea: ContentIdeas,
+): Promise<ContentIdeas> {
   const token = getStoredToken();
-  const res = await fetch(`${getApiBaseUrl()}/api/ideas/${contentIdea.id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  const res = await fetch(
+    `${getApiBaseUrl()}/api/content-ideas/${contentIdea.id}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(contentIdea),
     },
-    body: JSON.stringify(contentIdea),
-  });
+  );
   const json = await res.json();
   if (!res.ok) {
     throw new Error(json?.error || "Content Ideas update failed");
@@ -481,7 +482,7 @@ export async function updateContentIdea(contentIdea:ContentIdeas): Promise<Conte
 }
 export async function toggleContentIdea(id: string): Promise<ContentIdeas> {
   const token = getStoredToken();
-  const res = await fetch(`${getApiBaseUrl()}/api/ideas/${id}/toggle`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/content-ideas/${id}/toggle`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -496,7 +497,7 @@ export async function toggleContentIdea(id: string): Promise<ContentIdeas> {
 }
 export async function deleteContentIdea(id: string): Promise<void> {
   const token = getStoredToken();
-  const res = await fetch(`${getApiBaseUrl()}/api/ideas/${id}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/content-ideas/${id}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -509,16 +510,9 @@ export async function deleteContentIdea(id: string): Promise<void> {
   }
 }
 
-
 /**
  * Projects
- */ 
-enum ProjectStatus {
-  NOT_STARTED = "not_started",
-  IN_PROGRESS = "in_progress",
-  COMPLETED = "completed",
-}
-
+ */
 export interface ProjectsSteps {
   id: string;
   text: string;
@@ -549,7 +543,7 @@ export async function getProjects(): Promise<Projects[]> {
   }
   return Array.isArray(json.data) ? json.data : [];
 }
-export async function getProjectById(id:string): Promise<Projects> {
+export async function getProjectById(id: string): Promise<Projects> {
   const res = await fetch(`${getApiBaseUrl()}/api/projects/${id}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
@@ -564,7 +558,9 @@ export async function getProjectById(id:string): Promise<Projects> {
 export type CreateProjectPayload = Omit<Projects, "id" | "steps"> & {
   steps: Array<{ text: string; done?: boolean }>;
 };
-export async function createProject(project: CreateProjectPayload): Promise<Projects> {
+export async function createProject(
+  project: CreateProjectPayload,
+): Promise<Projects> {
   const token = getStoredToken();
   const res = await fetch(`${getApiBaseUrl()}/api/projects`, {
     method: "POST",
@@ -599,7 +595,7 @@ export async function updateProject(project: Projects): Promise<Projects> {
 /** Toggle done state of a single step. Uses project id and step id. */
 export async function toggleProjectStep(
   projectId: string,
-  stepId: string
+  stepId: string,
 ): Promise<ProjectsSteps> {
   const token = getStoredToken();
   const res = await fetch(
@@ -633,8 +629,6 @@ export async function deleteProjectById(project: Projects): Promise<void> {
   }
 }
 
-
-
 /**
  * ChatMessages
- */ 
+ */

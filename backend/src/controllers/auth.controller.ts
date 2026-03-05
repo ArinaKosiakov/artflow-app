@@ -19,7 +19,7 @@ export const register = asyncHandler(
       email,
       password
     );
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: result,
     });
@@ -36,7 +36,7 @@ export const login = asyncHandler(
       });
     }
     const result = await authService.login(email, password);
-    res.json({
+    return res.json({
       success: true,
       data: result,
     });

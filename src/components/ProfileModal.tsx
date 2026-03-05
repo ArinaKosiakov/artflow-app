@@ -5,27 +5,31 @@ import {
   AVAILABLE_PROFILE_PICTURES,
   getProfilePictureUrl,
 } from "../lib/profilePictures";
+import CustomSpinner from "./CustomSpinner";
 
 interface ProfileModalProps {
+  loading: boolean;
   isOpen: boolean;
   onClose: () => void;
   darkMode: boolean;
   currentName?: string;
   currentEmail?: string;
-  /** Profile picture ID (e.g. "uuid.png") from server or filename (e.g. "1.png") from local assets */
+  /** Profile picture filename (e.g. "1.png") from predefined set */
   currentProfilePicture?: string;
   onUpdateName?: (newName: string) => Promise<void>;
-  onUpdateEmail?: (newEmail: string) => Promise<void>;
+  /** Now receives both the new email and the current password for verification */
+  onUpdateEmail?: (newEmail: string, currentPassword: string) => Promise<void>;
   onUpdatePassword?: (
     currentPassword: string,
     newPassword: string,
   ) => Promise<void>;
-  /** Updated to accept File for upload */
-  onUpdateProfilePicture?: (file: File | string) => Promise<void>;
+  /** Only accepts predefined filenames like "1.png" */
+  onUpdateProfilePicture?: (filename: string) => Promise<void>;
   onRemoveProfilePicture?: () => Promise<void>;
 }
 
 export default function ProfileModal({
+  loading,
   isOpen,
   onClose,
   darkMode,
@@ -43,7 +47,6 @@ export default function ProfileModal({
   const [activeTab, setActiveTab] = useState<"picture" | "email" | "password">(
     "picture",
   );
-  /** Current selection: filename (e.g. "1.png") or null */
   const [profilePicture, setProfilePicture] = useState<string | null>(
     currentProfilePicture || null,
   );
@@ -53,14 +56,18 @@ export default function ProfileModal({
   const [nameErrors, setNameErrors] = useState<{ name?: string }>({});
   const [isUpdatingName, setIsUpdatingName] = useState(false);
 
-  // Update name when currentName changes
   useEffect(() => {
     setName(currentName);
+    setIsUpdatingName(!isUpdatingName);
   }, [currentName]);
 
   // Email state
   const [newEmail, setNewEmail] = useState("");
-  const [emailErrors, setEmailErrors] = useState<{ email?: string }>({});
+  const [emailPassword, setEmailPassword] = useState("");
+  const [emailErrors, setEmailErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
   // Password state
@@ -81,22 +88,16 @@ export default function ProfileModal({
 
   const validateName = () => {
     const errors: { name?: string } = {};
-
-    if (!name.trim()) {
-      errors.name = t("profile.errors.nameRequired");
-    }
-
+    if (!name.trim()) errors.name = t("profile.errors.nameRequired");
     setNameErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleUpdateName = async () => {
     if (!validateName() || !onUpdateName || isUpdatingName) return;
-
     setIsUpdatingName(true);
     try {
       await onUpdateName(name.trim());
-      // Success message could be shown here
     } catch (error) {
       console.error("Error updating name:", error);
     } finally {
@@ -119,25 +120,6 @@ export default function ProfileModal({
     }
   };
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file || !onUpdateProfilePicture) return;
-
-    setIsUpdatingPicture(true);
-    try {
-      await onUpdateProfilePicture(file);
-      // The pictureId will be updated by the parent component via currentProfilePicture prop
-    } catch (error) {
-      console.error("Error uploading profile picture:", error);
-    } finally {
-      setIsUpdatingPicture(false);
-      // Reset file input
-      event.target.value = "";
-    }
-  };
-
   const handleRemovePicture = async () => {
     if (onRemoveProfilePicture) {
       setIsUpdatingPicture(true);
@@ -153,7 +135,7 @@ export default function ProfileModal({
   };
 
   const validateEmail = () => {
-    const errors: { email?: string } = {};
+    const errors: { email?: string; password?: string } = {};
 
     if (!newEmail.trim()) {
       errors.email = t("profile.errors.emailRequired");
@@ -163,19 +145,22 @@ export default function ProfileModal({
       errors.email = t("profile.errors.sameEmail");
     }
 
+    if (!emailPassword) {
+      errors.password = t("profile.errors.currentPasswordRequired");
+    }
+
     setEmailErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleUpdateEmail = async () => {
     if (!validateEmail() || !onUpdateEmail || isUpdatingEmail) return;
-
     setIsUpdatingEmail(true);
     try {
-      await onUpdateEmail(newEmail);
+      await onUpdateEmail(newEmail, emailPassword);
       setNewEmail("");
+      setEmailPassword("");
       setEmailErrors({});
-      // Success message could be shown here
     } catch (error) {
       console.error("Error updating email:", error);
     } finally {
@@ -190,9 +175,8 @@ export default function ProfileModal({
       confirmPassword?: string;
     } = {};
 
-    if (!currentPassword) {
+    if (!currentPassword)
       errors.currentPassword = t("profile.errors.currentPasswordRequired");
-    }
 
     if (!newPassword) {
       errors.newPassword = t("profile.errors.newPasswordRequired");
@@ -212,7 +196,6 @@ export default function ProfileModal({
 
   const handleUpdatePassword = async () => {
     if (!validatePassword() || !onUpdatePassword || isUpdatingPassword) return;
-
     setIsUpdatingPassword(true);
     try {
       await onUpdatePassword(currentPassword, newPassword);
@@ -220,7 +203,6 @@ export default function ProfileModal({
       setNewPassword("");
       setConfirmPassword("");
       setPasswordErrors({});
-      // Success message could be shown here
     } catch (error) {
       console.error("Error updating password:", error);
     } finally {
@@ -232,6 +214,7 @@ export default function ProfileModal({
     setActiveTab("picture");
     setName(currentName);
     setNewEmail("");
+    setEmailPassword("");
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -242,8 +225,18 @@ export default function ProfileModal({
     onClose();
   };
 
+  const inputClass = (hasError: boolean) =>
+    `w-full pl-10 pr-4 py-3 rounded-lg border ${
+      hasError
+        ? "border-red-500"
+        : darkMode
+          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
+    } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      {loading && <CustomSpinner darkMode={darkMode} />}
       <div
         className={`${darkMode ? "bg-gray-800" : "bg-white"} rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col`}
       >
@@ -268,42 +261,23 @@ export default function ProfileModal({
         <div
           className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} px-6 py-2 flex gap-2 border-b ${darkMode ? "border-gray-600" : "border-gray-200"}`}
         >
-          <button
-            onClick={() => setActiveTab("picture")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "picture"
-                ? "bg-purple-500 text-white"
-                : darkMode
-                  ? "text-gray-300 hover:bg-gray-600"
-                  : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {t("profile.profilePicture")}
-          </button>
-          <button
-            onClick={() => setActiveTab("email")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "email"
-                ? "bg-purple-500 text-white"
-                : darkMode
-                  ? "text-gray-300 hover:bg-gray-600"
-                  : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {t("profile.changeEmail")}
-          </button>
-          <button
-            onClick={() => setActiveTab("password")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "password"
-                ? "bg-purple-500 text-white"
-                : darkMode
-                  ? "text-gray-300 hover:bg-gray-600"
-                  : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {t("profile.changePassword")}
-          </button>
+          {(["picture", "email", "password"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? "bg-purple-500 text-white"
+                  : darkMode
+                    ? "text-gray-300 hover:bg-gray-600"
+                    : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {t(
+                `profile.${tab === "picture" ? "profilePicture" : tab === "email" ? "changeEmail" : "changePassword"}`,
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Content */}
@@ -363,28 +337,6 @@ export default function ProfileModal({
                     );
                   })}
                 </div>
-                {/* <div className="mt-4">
-                  <label
-                    htmlFor="file-upload"
-                    className={`cursor-pointer px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2 ${
-                      darkMode
-                        ? "bg-gray-700 text-purple-400 hover:bg-gray-600"
-                        : "bg-gray-100 text-purple-500 hover:bg-gray-200"
-                    } ${isUpdatingPicture ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    <User className="w-4 h-4" />
-                    {t("profile.uploadCustomPicture") ||
-                      "Upload Custom Picture"}
-                  </label>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/webp"
-                    onChange={handleFileUpload}
-                    disabled={isUpdatingPicture}
-                    className="hidden"
-                  />
-                </div> */}
                 {profilePicture && (
                   <button
                     onClick={handleRemovePicture}
@@ -420,13 +372,7 @@ export default function ProfileModal({
                       if (nameErrors.name) setNameErrors({});
                     }}
                     placeholder={t("profile.namePlaceholder")}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                      nameErrors.name
-                        ? "border-red-500"
-                        : darkMode
-                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
-                    } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
+                    className={inputClass(!!nameErrors.name)}
                   />
                 </div>
                 {nameErrors.name && (
@@ -434,20 +380,17 @@ export default function ProfileModal({
                 )}
               </div>
 
-              {/* Save Name Button */}
-              {onUpdateName && (
-                <button
-                  onClick={handleUpdateName}
-                  disabled={
-                    isUpdatingName ||
-                    !name.trim() ||
-                    name.trim() === currentName
-                  }
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUpdatingName ? "Saving..." : t("profile.save")}
-                </button>
-              )}
+              {onUpdateName &&
+                name.trim() !== currentName &&
+                name.trim() !== "" && (
+                  <button
+                    onClick={handleUpdateName}
+                    disabled={isUpdatingName}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdatingName ? "Saving..." : t("profile.save")}
+                  </button>
+                )}
             </div>
           )}
 
@@ -466,6 +409,7 @@ export default function ProfileModal({
                   {currentEmail}
                 </div>
               </div>
+
               <div>
                 <label
                   className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
@@ -481,16 +425,14 @@ export default function ProfileModal({
                     value={newEmail}
                     onChange={(e) => {
                       setNewEmail(e.target.value);
-                      if (emailErrors.email) setEmailErrors({});
+                      if (emailErrors.email)
+                        setEmailErrors((prev) => ({
+                          ...prev,
+                          email: undefined,
+                        }));
                     }}
                     placeholder={t("profile.emailPlaceholder")}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                      emailErrors.email
-                        ? "border-red-500"
-                        : darkMode
-                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
-                    } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
+                    className={inputClass(!!emailErrors.email)}
                   />
                 </div>
                 {emailErrors.email && (
@@ -499,9 +441,42 @@ export default function ProfileModal({
                   </p>
                 )}
               </div>
+
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {t("profile.currentPassword")}
+                </label>
+                <div className="relative">
+                  <Lock
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
+                  />
+                  <input
+                    type="password"
+                    value={emailPassword}
+                    onChange={(e) => {
+                      setEmailPassword(e.target.value);
+                      if (emailErrors.password)
+                        setEmailErrors((prev) => ({
+                          ...prev,
+                          password: undefined,
+                        }));
+                    }}
+                    placeholder={t("profile.currentPasswordPlaceholder")}
+                    className={inputClass(!!emailErrors.password)}
+                  />
+                </div>
+                {emailErrors.password && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {emailErrors.password}
+                  </p>
+                )}
+              </div>
+
               <button
                 onClick={handleUpdateEmail}
-                disabled={isUpdatingEmail || !newEmail.trim()}
+                disabled={isUpdatingEmail || !newEmail.trim() || !emailPassword}
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUpdatingEmail ? "Updating..." : t("profile.save")}
@@ -528,19 +503,13 @@ export default function ProfileModal({
                     onChange={(e) => {
                       setCurrentPassword(e.target.value);
                       if (passwordErrors.currentPassword)
-                        setPasswordErrors({
-                          ...passwordErrors,
+                        setPasswordErrors((prev) => ({
+                          ...prev,
                           currentPassword: undefined,
-                        });
+                        }));
                     }}
                     placeholder={t("profile.currentPasswordPlaceholder")}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                      passwordErrors.currentPassword
-                        ? "border-red-500"
-                        : darkMode
-                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
-                    } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
+                    className={inputClass(!!passwordErrors.currentPassword)}
                   />
                 </div>
                 {passwordErrors.currentPassword && (
@@ -549,6 +518,7 @@ export default function ProfileModal({
                   </p>
                 )}
               </div>
+
               <div>
                 <label
                   className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
@@ -565,33 +535,21 @@ export default function ProfileModal({
                     onChange={(e) => {
                       setNewPassword(e.target.value);
                       if (passwordErrors.newPassword)
-                        setPasswordErrors({
-                          ...passwordErrors,
+                        setPasswordErrors((prev) => ({
+                          ...prev,
                           newPassword: undefined,
-                        });
-                      if (
-                        passwordErrors.confirmPassword &&
-                        e.target.value !== confirmPassword
-                      ) {
-                        setPasswordErrors({
-                          ...passwordErrors,
-                          confirmPassword: t("profile.errors.passwordMismatch"),
-                        });
-                      } else if (passwordErrors.confirmPassword) {
-                        setPasswordErrors({
-                          ...passwordErrors,
-                          confirmPassword: undefined,
-                        });
-                      }
+                        }));
+                      if (passwordErrors.confirmPassword)
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          confirmPassword:
+                            e.target.value !== confirmPassword
+                              ? t("profile.errors.passwordMismatch")
+                              : undefined,
+                        }));
                     }}
                     placeholder={t("profile.passwordPlaceholder")}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                      passwordErrors.newPassword
-                        ? "border-red-500"
-                        : darkMode
-                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
-                    } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
+                    className={inputClass(!!passwordErrors.newPassword)}
                   />
                 </div>
                 {passwordErrors.newPassword && (
@@ -600,6 +558,7 @@ export default function ProfileModal({
                   </p>
                 )}
               </div>
+
               <div>
                 <label
                   className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
@@ -615,30 +574,17 @@ export default function ProfileModal({
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
-                      if (passwordErrors.confirmPassword) {
-                        if (e.target.value !== newPassword) {
-                          setPasswordErrors({
-                            ...passwordErrors,
-                            confirmPassword: t(
-                              "profile.errors.passwordMismatch",
-                            ),
-                          });
-                        } else {
-                          setPasswordErrors({
-                            ...passwordErrors,
-                            confirmPassword: undefined,
-                          });
-                        }
-                      }
+                      if (passwordErrors.confirmPassword)
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          confirmPassword:
+                            e.target.value !== newPassword
+                              ? t("profile.errors.passwordMismatch")
+                              : undefined,
+                        }));
                     }}
                     placeholder={t("profile.confirmPasswordPlaceholder")}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                      passwordErrors.confirmPassword
-                        ? "border-red-500"
-                        : darkMode
-                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
-                    } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
+                    className={inputClass(!!passwordErrors.confirmPassword)}
                   />
                 </div>
                 {passwordErrors.confirmPassword && (
@@ -647,6 +593,7 @@ export default function ProfileModal({
                   </p>
                 )}
               </div>
+
               <button
                 onClick={handleUpdatePassword}
                 disabled={

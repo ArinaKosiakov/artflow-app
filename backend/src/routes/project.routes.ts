@@ -6,11 +6,11 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/projects', getProjects);
-router.get('/projects/:id', getProjectById);
-router.post('/projects', createProject);
-router.put('/projects/:id', updateProject);
-router.delete('/projects/:id', deleteProject);
-router.put('/projects/:id/:stepId', toggleStep);
+router.get("/", getProjects);
+router.get("/:id", getProjectById);
+router.post("/", createProject);
+router.put("/:id", updateProject);
+router.delete("/:id", deleteProject);
+router.put("/:id/:stepId", toggleStep);
 
 export default router;

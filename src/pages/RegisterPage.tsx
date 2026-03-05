@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Palette, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import {
+  Palette,
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import Spinner from "../components/CustomSpinner";
 
 interface RegisterPageProps {
   darkMode: boolean;
@@ -29,6 +38,8 @@ export default function RegisterPage({
     confirmPassword?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateForm = () => {
     const newErrors: {
@@ -40,6 +51,8 @@ export default function RegisterPage({
 
     if (!name.trim()) {
       newErrors.name = t("auth.errors.nameRequired");
+    } else if (name.trim().length < 3) {
+      newErrors.name = t("auth.errors.nameTooShort");
     }
 
     if (!email.trim()) {
@@ -123,6 +136,7 @@ export default function RegisterPage({
               )}
             </div>
           )}
+          {isSubmitting && <Spinner />}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Field */}
             <div>
@@ -203,7 +217,7 @@ export default function RegisterPage({
                   className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
                 />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
@@ -222,7 +236,7 @@ export default function RegisterPage({
                     }
                   }}
                   placeholder={t("auth.register.passwordPlaceholder")}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                  className={`w-full pl-10 pr-12 py-3 rounded-lg border ${
                     errors.password
                       ? "border-red-500"
                       : darkMode
@@ -230,6 +244,18 @@ export default function RegisterPage({
                         : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                   } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded ${darkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"}`}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
               {errors.password && (
                 <p className="mt-1 text-sm text-red-500">{errors.password}</p>
@@ -248,7 +274,7 @@ export default function RegisterPage({
                   className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? "text-gray-500" : "text-gray-400"}`}
                 />
                 <input
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
@@ -264,7 +290,7 @@ export default function RegisterPage({
                     }
                   }}
                   placeholder={t("auth.register.confirmPasswordPlaceholder")}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                  className={`w-full pl-10 pr-12 py-3 rounded-lg border ${
                     errors.confirmPassword
                       ? "border-red-500"
                       : darkMode
@@ -272,6 +298,20 @@ export default function RegisterPage({
                         : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
                   } focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded ${darkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"}`}
+                  aria-label={
+                    showConfirmPassword ? "Hide password" : "Show password"
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-red-500">

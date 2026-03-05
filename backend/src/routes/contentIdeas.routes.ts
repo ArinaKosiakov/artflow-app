@@ -6,11 +6,11 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get("/ideas", getContentIdeas);
-router.get("/ideas/:id", getContentIdeaById);
-router.post("/ideas", createContentIdea);
-router.put("/ideas/:id", updateContentIdea);
-router.put("/ideas/:id/toggle", toggleContentIdea);
-router.delete("/ideas/:id", deleteContentIdea);
+router.get("/", getContentIdeas);
+router.get("/:id", getContentIdeaById);
+router.post("/", createContentIdea);
+router.put("/:id", updateContentIdea);
+router.put("/:id/toggle", toggleContentIdea);
+router.delete("/:id", deleteContentIdea);
 
 export default router;

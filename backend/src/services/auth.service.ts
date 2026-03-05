@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from "jsonwebtoken";
 import { prisma } from '../config/database';
 import { AppError } from '../types';
 
@@ -83,12 +83,9 @@ export class AuthService {
   private signToken(id: string, email: string, name?: string): string {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-      throw new AppError(500, 'Server configuration error: JWT_SECRET missing');
+      throw new AppError(500, "Server configuration error");
     }
-    return jwt.sign(
-      { id, email, name },
-      secret,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
+    return jwt.sign({ id, email, name }, secret, { expiresIn } as SignOptions);
   }
 }

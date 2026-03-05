@@ -11,6 +11,7 @@ export const getUserProfile = asyncHandler(
         res.json({success: true, data: userProfile});
     }
 )
+
 // Allowed profile picture filenames (e.g. "1.png" … "10.png")
 const ALLOWED_PROFILE_PICTURES = /^([1-9]|10)\.png$/;
 
@@ -39,6 +40,36 @@ export const updateUserProfile = asyncHandler(
         );
         res.json({ success: true, data: userProfile });
     })
+
+export const updateUserPassword = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const userId = req.user!.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({
+        success: false,
+        error: "Current password and new password are required",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({
+        success: false,
+        error: "New password must be at least 8 characters long",
+      });
+      return;
+    }
+
+    await userProfileService.updateUserPassword(
+      userId,
+      currentPassword,
+      newPassword,
+    );
+    res.json({ success: true, message: "Password updated successfully" });
+  },
+);
 
 export const deleteUserProfile = asyncHandler(
 async (req: AuthRequest, res: Response, _next: NextFunction)=>{

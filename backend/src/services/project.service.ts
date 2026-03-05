@@ -17,6 +17,20 @@ export class ProjectsService {
       include: { steps: { orderBy: { order: "asc" } } },
     });
   }
+  // Normalize deadline to ISO-8601 DateTime (Prisma expects full datetime, frontend may send date-only)
+  private normalizeDeadline(deadline: unknown): Date | undefined {
+    if (deadline == null || deadline === "") return undefined;
+    if (deadline instanceof Date) return deadline;
+    const s = String(deadline).trim();
+    if (!s) return undefined;
+    // If date-only (YYYY-MM-DD), append time for ISO-8601
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      return new Date(s + "T12:00:00.000Z");
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? undefined : d;
+  }
+
   //create a projects (accepts steps array from frontend and maps to Prisma nested create)
   async createProject(userId: string, data: any) {
     const { steps: stepsInput, ...rest } = data;
@@ -31,9 +45,14 @@ export class ProjectsService {
           ),
         }
       : undefined;
+    const normalizedDeadline = this.normalizeDeadline(rest.deadline);
+    const { deadline: _d, ...restWithoutDeadline } = rest;
     return prisma.project.create({
       data: {
-        ...rest,
+        ...restWithoutDeadline,
+        ...(normalizedDeadline !== undefined && {
+          deadline: normalizedDeadline,
+        }),
         userId,
         ...(stepsPayload ? { steps: stepsPayload } : {}),
       },
@@ -47,11 +66,14 @@ export class ProjectsService {
     data: Prisma.ProjectUpdateInput,
   ) {
     await this.getProjectById(id, userId);
+    const updateData = { ...data } as Record<string, unknown>;
+    if ("deadline" in updateData && updateData.deadline !== undefined) {
+      const normalized = this.normalizeDeadline(updateData.deadline);
+      updateData.deadline = normalized ?? null;
+    }
     return prisma.project.update({
       where: { id, userId },
-      data: {
-        ...data,
-      },
+      data: updateData as Prisma.ProjectUpdateInput,
       include: { steps: true },
     });
   }

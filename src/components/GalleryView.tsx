@@ -3,6 +3,7 @@ import { Plus, Trash2, Pencil, GripVertical } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AddIdeaModal from './AddIdeaModal';
 import { Prompt } from "../types/types";
+import CustomSpinner from "./CustomSpinner";
 
 interface Idea {
   id: string;
@@ -16,6 +17,7 @@ interface GalleryViewProps {
   onEditIdea?: (id: string, text: string) => void;
   onDeleteIdea: (id: string) => void;
   onReorderIdeas: (ideas: Idea[]) => void;
+  loading: boolean;
 }
 
 export default function GalleryView({
@@ -25,6 +27,7 @@ export default function GalleryView({
   onEditIdea,
   onDeleteIdea,
   onReorderIdeas,
+  loading,
 }: GalleryViewProps) {
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,6 +87,7 @@ export default function GalleryView({
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Add new idea button */}
+        {loading && <CustomSpinner darkMode={darkMode} />}
         <button
           onClick={() => setIsModalOpen(true)}
           className={`rounded-xl shadow-sm border-2 border-dashed p-6 hover:shadow-md transition-all cursor-pointer flex items-center justify-center min-h-[140px] ${

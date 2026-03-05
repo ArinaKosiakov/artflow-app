@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProfileModal from "./components/ProfileModal";
 import { Prompt } from "./types/types";
+import { Toaster, toaster } from "./components/ui/toaster";
 import {
   getStoredToken,
   authMe,
@@ -33,105 +34,149 @@ export default function App() {
     return getStoredToken() !== null;
   });
   const [authPage, setAuthPage] = useState<"login" | "register">("login");
-const [userInfo, setUserInfo] = useState({
-  email: "",
-  name: "",
-  profilePicture: null as string | null,
-});
-const [settings, setSettings] = useState({
-  darkMode: false,
-  language: "en",
-});
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState({
+    email: "",
+    name: "",
+    profilePicture: null as string | null,
+  });
+  const [settings, setSettings] = useState({
+    darkMode: false,
+    language: "en",
+  });
 
-useEffect(() => {
-  const loadUser = async () => {
-    const user = await authMe();
-    if (user) {
-      setUserInfo({
-        email: user.email,
-        name: user.name || "",
-        profilePicture: user.profilePicture || null,
-      });
-      setIsAuthenticated(true);
-    } else {
-      setUserInfo({
-        email: "",
-        name: "",
-        profilePicture: null,
-      });
-      setIsAuthenticated(false);
-      setAuthPage("login");
-    }
-  };
-  const loadSettings = async () => {
-    if (!isAuthenticated) return;
-    try {
-      const settings = await getSettings();
-      if (settings) {
-        setSettings({
-          darkMode: settings.darkMode,
-          language: settings.language,
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await authMe();
+        if (user) {
+          setUserInfo({
+            email: user.email,
+            name: user.name || "",
+            profilePicture: user.profilePicture || null,
+          });
+          setIsAuthenticated(true);
+        } else {
+          setUserInfo({
+            email: "",
+            name: "",
+            profilePicture: null,
+          });
+          setIsAuthenticated(false);
+          setAuthPage("login");
+        }
+      } catch (e) {
+        toaster.create({
+          description: "failed to load user",
+          type: "error",
         });
-      } else {
-        setSettings({ darkMode: false, language: "en" });
       }
-    } catch (error) {
-      console.log("Error loading settings:", error);
-    }
-  };
-  const loadProjects = async () => {
+    };
+    const loadSettings = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const settings = await getSettings();
+        if (settings) {
+          setSettings({
+            darkMode: settings.darkMode,
+            language: settings.language,
+          });
+        } else {
+          setSettings({ darkMode: false, language: "en" });
+        }
+      } catch (error) {
+        toaster.create({
+          description: "Failed to load settings",
+          type: "error",
+        });
+      }
+    };
+    const loadContentIdeas = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const list = await getContentIdeas();
+        setContentIdeas(Array.isArray(list) ? list : []);
+      } catch (e) {
+        toaster.create({
+          description: "Failed to load content ideas",
+          type: "error",
+        });
+      }
+    };
+    const loadPrompts = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const list = await getPrompts();
+        setPrompts(Array.isArray(list) ? list : []);
+      } catch (e) {
+        toaster.create({
+          description: "Failed to load prompts",
+          type: "error",
+        });
+      }
+    };
+
+    loadUser();
+    loadSettings();
+    loadContentIdeas();
+    loadPrompts();
+  }, []);
+
+  // Reload projects when user becomes authenticated (e.g. after login)
+  useEffect(() => {
     if (!isAuthenticated) return;
-    try {
-      const list = await getProjects();
-      setProjects(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error("Failed to load projects:", e);
-    }
-  };
-  const loadContentIdeas = async () => {
-    if (!isAuthenticated) return;
-    try {
-      const list = await getContentIdeas();
-      setContentIdeas(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error("Failed to load content ideas:", e);
-    }
-  };
-  const loadPrompts = async () => {
-    if (!isAuthenticated) return;
-    try {
-      const list = await getPrompts();
-      setPrompts(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error("Failed to load prompts:", e);
-    }
-  };
+    const loadProjects = async () => {
+      setProjectsLoading(true);
+      setContentLoading(true);
+      setPromptsLoading(true);
+      setSettingsLoading(true);
+      try {
+        const list = await getProjects();
+        setProjects(Array.isArray(list) ? list : []);
+      } catch (e) {
+        console.error("Failed to load projects:", e);
+        toaster.create({
+          description: "Failed to load projects",
+          type: "error",
+        });
+      } finally {
+        setProjectsLoading(false);
+        setContentLoading(false);
+        setPromptsLoading(false);
+        setSettingsLoading(false);
+      }
+    };
+    loadProjects();
+  }, [isAuthenticated]);
 
-  loadUser();
-  loadSettings();
-  loadProjects();
-  loadContentIdeas();
-  loadPrompts();
-}, []);
-const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-const [projects, setProjects] = useState<Projects[]>([]);
-const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>([]);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [projects, setProjects] = useState<Projects[]>([]);
+  const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>([]);
 
-const [projectModalOpen, setProjectModalOpen] = useState(false);
-const [editingProject, setEditingProject] = useState<Projects | null>(null);
-const [contentModalOpen, setContentModalOpen] = useState(false);
-const [editingContent, setEditingContent] = useState<ContentIdea | null>(null);
-const [promptsModalOpen, setPromptsModalOpen] = useState(false);
-const [editingPrompts, setEditingPrompts] = useState<Prompt | null>(null);
-const [prompts, setPrompts] = useState<Prompt[] | null>(null);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [isSavingContent, setIsSavingContent] = useState(false);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [promptsLoading, setPromptsLoading] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Projects | null>(null);
+  const [contentModalOpen, setContentModalOpen] = useState(false);
+  const [editingContent, setEditingContent] = useState<ContentIdea | null>(
+    null,
+  );
+  const [promptsModalOpen, setPromptsModalOpen] = useState(false);
+  const [editingPrompts, setEditingPrompts] = useState<Prompt | null>(null);
+  const [prompts, setPrompts] = useState<Prompt[] | null>(null);
 
-const ideas = prompts.map((p) => ({ id: p.id, text: p.text }));
+  const ideas = (prompts ?? []).map((p) => ({ id: p.id, text: p.text }));
 
-const [chatMessages, setChatMessages] = useState<
-  Array<{ role: "user" | "assistant"; text: string }>
->([]);
+  const [chatMessages, setChatMessages] = useState<
+    Array<{ role: "user" | "assistant"; text: string }>
+  >([]);
 
-const [chatInput, setChatInput] = useState("");
+  const [chatInput, setChatInput] = useState("");
 
   const handlers = useAppHandlers({
     setUserInfo,
@@ -139,6 +184,7 @@ const [chatInput, setChatInput] = useState("");
     setAuthPage,
     projects,
     setProjects,
+    setIsSavingProject,
     setProjectModalOpen,
     setEditingProject,
     contentIdeas,
@@ -157,38 +203,51 @@ const [chatInput, setChatInput] = useState("");
     chatInput,
     setChatInput,
     welcomeMessage: t("ai.welcomeMessage"),
+    setLoginError,
+    setRegisterError,
   });
 
   useEffect(() => {
     localStorage.setItem("darkMode", JSON.stringify(settings.darkMode));
   }, [settings.darkMode]);
 
-useEffect(() => {
-  setChatMessages([{ role: "assistant", text: t("ai.welcomeMessage") }]);
-}, [i18n.language, t]);
+  useEffect(() => {
+    setChatMessages([{ role: "assistant", text: t("ai.welcomeMessage") }]);
+  }, [i18n.language, t]);
 
   const darkMode = settings.darkMode;
 
   // Show authentication pages if not authenticated
-if (!isAuthenticated && process.env.NODE_ENV !== "development") {
-  return (
-    <>
-      {authPage === "login" ? (
-        <LoginPage
-          darkMode={darkMode}
-          onLogin={handlers.handleLogin}
-          onSwitchToRegister={() => setAuthPage("register")}
-        />
-      ) : (
-        <RegisterPage
-          darkMode={darkMode}
-          onRegister={handlers.handleRegister}
-          onSwitchToLogin={() => setAuthPage("login")}
-        />
-      )}
-    </>
-  );
-}
+  if (!isAuthenticated) {
+    return (
+      <>
+        {authPage === "login" ? (
+          <LoginPage
+            darkMode={darkMode}
+            onLogin={handlers.handleLogin}
+            onSwitchToRegister={() => {
+              setAuthPage("register");
+              setLoginError(null);
+            }}
+            serverError={loginError}
+            onClearError={() => setLoginError(null)}
+          />
+        ) : (
+          <RegisterPage
+            darkMode={darkMode}
+            onRegister={handlers.handleRegister}
+            onSwitchToLogin={() => {
+              setAuthPage("login");
+              setRegisterError(null);
+            }}
+            serverError={registerError}
+            onClearError={() => setRegisterError(null)}
+          />
+        )}
+        <Toaster />
+      </>
+    );
+  }
 
   return (
     <div
@@ -237,6 +296,8 @@ if (!isAuthenticated && process.env.NODE_ENV !== "development") {
             <ProjectsView
               projects={projects}
               darkMode={darkMode}
+              projectsLoading={projectsLoading}
+              isSavingProject={isSavingProject}
               onToggleStep={handlers.toggleStep}
               onDeleteProject={handlers.deleteProject}
               onEditProject={handlers.openProjectModal}
@@ -251,6 +312,8 @@ if (!isAuthenticated && process.env.NODE_ENV !== "development") {
               onToggleContent={handlers.toggleContent}
               onEditContent={handlers.openContentModal}
               onSaveContent={handlers.saveContent}
+              isSavingContent={isSavingContent}
+              contentLoading={contentLoading}
             />
           )}
 
@@ -266,6 +329,7 @@ if (!isAuthenticated && process.env.NODE_ENV !== "development") {
 
           {activeTab === "gallery" && (
             <GalleryView
+              loading={promptsLoading}
               darkMode={darkMode}
               ideas={ideas}
               onAddIdea={handlers.addIdea}
@@ -279,6 +343,7 @@ if (!isAuthenticated && process.env.NODE_ENV !== "development") {
 
       {/* Profile Modal */}
       <ProfileModal
+        loading={settingsLoading}
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         darkMode={darkMode}
@@ -291,6 +356,9 @@ if (!isAuthenticated && process.env.NODE_ENV !== "development") {
         onUpdateProfilePicture={handlers.handleUpdateProfilePicture}
         onRemoveProfilePicture={handlers.handleRemoveProfilePicture}
       />
+
+      {/* Toast notifications */}
+      <Toaster />
     </div>
   );
 }

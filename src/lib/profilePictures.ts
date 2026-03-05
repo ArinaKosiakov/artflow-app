@@ -27,27 +27,22 @@ function resolveContextUrl(mod: string | { default: string }): string | undefine
 
 /**
  * Returns the URL for a profile picture.
- * Supports:
- * - Local assets (e.g. "1.png") from src/profilePictures/
- * - Server uploaded images (e.g. "uuid.png") from /uploads/profilePictures/
- * - Legacy absolute URLs or data URLs (backward compatibility)
+ * Only supports local predefined assets (e.g. "1.png", "2.png") from src/profilePictures/
  */
-export function getProfilePictureUrl(value: string | null | undefined): string | undefined {
+export function getProfilePictureUrl(
+  value: string | null | undefined,
+): string | undefined {
   if (value == null || value === "") return undefined;
-  
+
   // Legacy: absolute URLs or data URLs
   if (value.startsWith("http") || value.startsWith("data:")) return value;
-  
+
   // Check if it's a local asset (numbered files like "1.png", "2.png")
   const key = `./${value}`;
   if (profilePicturesContext.keys().includes(key)) {
     return resolveContextUrl(profilePicturesContext(key));
   }
-  
-  // Otherwise, assume it's a server-uploaded file (UUID format)
-  // Return API URL for uploaded profile pictures
-  const apiBaseUrl = typeof window !== "undefined" && (window as any).__ARTFLOW_API_URL__
-    ? (window as any).__ARTFLOW_API_URL__
-    : "http://localhost:3001";
-  return `${apiBaseUrl}/uploads/profilePictures/${value}`;
+
+  // If not found, return undefined
+  return undefined;
 }

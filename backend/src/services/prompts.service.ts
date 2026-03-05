@@ -2,6 +2,19 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 
 export class PromptService {
+  // Normalize date to ISO-8601 DateTime (Prisma expects full datetime, frontend may send date-only or omit)
+  private normalizeSaved(saved: unknown): Date | undefined {
+    if (saved == null || saved === "") return undefined;
+    if (saved instanceof Date) return saved;
+    const s = String(saved).trim();
+    if (!s) return undefined;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      return new Date(s + "T12:00:00.000Z");
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? undefined : d;
+  }
+
   //get all prompts for a user
 
   async getPrompts(userId: string) {
@@ -20,11 +33,15 @@ export class PromptService {
   }
   //create a new prompt
   async createPrompt(userId: string, data: Prisma.PromptUncheckedCreateInput) {
+    const input = { ...data } as Record<string, unknown>;
+    const normalizedSaved = this.normalizeSaved(input.saved);
+    delete input.saved;
     return prisma.prompt.create({
       data: {
-        ...data,
+        ...input,
+        ...(normalizedSaved !== undefined && { saved: normalizedSaved }),
         userId,
-      },
+      } as Prisma.PromptUncheckedCreateInput,
       include: { user: { select: { id: true } } },
     });
   }
@@ -35,11 +52,15 @@ export class PromptService {
     data: Prisma.PromptUpdateInput,
   ) {
     await this.getPromptById(id, userId);
+    const updateData = { ...data } as Record<string, unknown>;
+    if ("saved" in updateData && updateData.saved !== undefined) {
+      const normalized = this.normalizeSaved(updateData.saved);
+      if (normalized !== undefined) updateData.saved = normalized;
+      else delete updateData.saved;
+    }
     return prisma.prompt.update({
       where: { id, userId },
-      data: {
-        ...data,
-      },
+      data: updateData as Prisma.PromptUpdateInput,
       include: { user: { select: { id: true } } },
     });
   }

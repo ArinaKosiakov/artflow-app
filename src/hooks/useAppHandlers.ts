@@ -8,7 +8,6 @@ import {
   clearStoredToken,
   updateProfile,
   updatePassword,
-  uploadProfilePicture,
   createProject,
   updateProject,
   deleteProjectById,
@@ -24,6 +23,7 @@ import {
   reorderPrompts,
 } from "../services/api";
 import type { Projects, Platform } from "../services/api";
+import { toaster } from "../components/ui/toaster";
 
 export interface ContentIdea {
   id: string;
@@ -72,6 +72,10 @@ export interface UseAppHandlersParams {
   chatInput: string;
   setChatInput: React.Dispatch<React.SetStateAction<string>>;
   welcomeMessage: string;
+  setLoginError?: (message: string | null) => void;
+  setRegisterError?: (message: string | null) => void;
+  setIsSavingProject?: (value: boolean) => void;
+  setIsSavingContent?: (value: boolean) => void;
 }
 
 /**
@@ -103,6 +107,10 @@ export function useAppHandlers(params: UseAppHandlersParams) {
     setChatInput,
     chatMessages,
     welcomeMessage,
+    setLoginError,
+    setRegisterError,
+    setIsSavingProject,
+    setIsSavingContent,
   } = params;
 
   const toggleStep = useCallback(
@@ -122,7 +130,10 @@ export function useAppHandlers(params: UseAppHandlersParams) {
           ),
         );
       } catch (e) {
-        console.error("Toggle step failed:", e);
+        toaster.create({
+          description: "Toggle step failed",
+          type: "error",
+        });
       }
     },
     [setProjects],
@@ -135,6 +146,7 @@ export function useAppHandlers(params: UseAppHandlersParams) {
       },
       id?: string,
     ) => {
+      setIsSavingProject?.(true);
       try {
         const status = (projectData.status || "not_started").replace(/-/g, "_");
         const order = "order" in projectData ? Number(projectData.order) : 0;
@@ -164,31 +176,47 @@ export function useAppHandlers(params: UseAppHandlersParams) {
             deadline: projectData.deadline,
             status,
             order,
-            steps: projectData.steps.map((s: { text: string; done: boolean }) => ({
-              text: s.text,
-              done: s.done,
-            })),
+            steps: projectData.steps.map(
+              (s: { text: string; done: boolean }) => ({
+                text: s.text,
+                done: s.done,
+              }),
+            ),
           });
           setProjects((prev) => [...prev, created]);
         }
         setProjectModalOpen(false);
         setEditingProject(null);
+        toaster.create({
+          description: "Your project has been saved successfully",
+          type: "success",
+        });
       } catch (e) {
-        console.error("Save project failed:", e);
+        toaster.create({
+          description:
+            "Save project failed: " +
+            (e instanceof Error ? e.message : "Unknown error"),
+          type: "error",
+        });
+      } finally {
+        setIsSavingProject?.(false);
       }
     },
-    [setProjects, setProjectModalOpen, setEditingProject],
+    [setProjects, setProjectModalOpen, setEditingProject, setIsSavingProject],
   );
 
   const saveContent = useCallback(
     async (contentData: Omit<ContentIdea, "id">, id?: string) => {
       try {
+        setIsSavingContent?.(true);
         if (id !== undefined) {
           const updated = await updateContentIdea({
             ...contentData,
             id,
           });
-          setContentIdeas((prev) => prev.map((c) => (c.id === id ? updated : c)));
+          setContentIdeas((prev) =>
+            prev.map((c) => (c.id === id ? updated : c)),
+          );
         } else {
           const created = await createContentIdea({
             ...contentData,
@@ -198,11 +226,25 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         }
         setContentModalOpen(false);
         setEditingContent(null);
+        toaster.create({
+          description: "Your content has been saved successfully",
+          type: "success",
+        });
       } catch (e) {
-        console.error("Save content failed:", e);
+        toaster.create({
+          description: "Save contentfailed",
+          type: "error",
+        });
+      } finally {
+        setIsSavingContent?.(false);
       }
     },
-    [setContentIdeas, setContentModalOpen, setEditingContent],
+    [
+      setContentIdeas,
+      setContentModalOpen,
+      setEditingContent,
+      setIsSavingContent,
+    ],
   );
 
   const openProjectModal = useCallback(
@@ -228,8 +270,17 @@ export function useAppHandlers(params: UseAppHandlersParams) {
       try {
         await deleteProjectById(project);
         setProjects((prev) => prev.filter((p) => p.id !== id));
+        toaster.create({
+          description: "Your project has been deleted successfully",
+          type: "success",
+        });
       } catch (e) {
-        console.error("Delete project failed:", e);
+        toaster.create({
+          description:
+            "Delete project failed: " +
+            (e instanceof Error ? e.message : "Unknown error"),
+          type: "error",
+        });
       }
     },
     [projects, setProjects],
@@ -240,8 +291,15 @@ export function useAppHandlers(params: UseAppHandlersParams) {
       try {
         await deleteContentIdea(id);
         setContentIdeas((prev) => prev.filter((c) => c.id !== id));
+        toaster.create({
+          description: "Your content has been deleted successfully",
+          type: "success",
+        });
       } catch (e) {
-        console.error("Delete contentIdeas failed:", e);
+        toaster.create({
+          description: "Delete content failed:",
+          type: "error",
+        });
       }
     },
     [setContentIdeas],
@@ -256,6 +314,10 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         );
       } catch (e) {
         console.error("Toggle content failed:", e);
+        toaster.create({
+          description: "Toggle content failed:",
+          type: "error",
+        });
       }
     },
     [setContentIdeas],
@@ -290,8 +352,16 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         }
         setPromptsModalOpen(false);
         setEditingPrompts(null);
+        toaster.create({
+          description: "Your prompt has been saved successfully",
+          type: "success",
+        });
       } catch (e) {
         console.error("Save Prompt failed:", e);
+        toaster.create({
+          description: "Save prompt failed:",
+          type: "error",
+        });
       }
     },
     [setPrompts, setPromptsModalOpen, setEditingPrompts],
@@ -314,6 +384,10 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         setPrompts((prev) => [...prev, created]);
       } catch (e) {
         console.error("Add idea failed:", e);
+        toaster.create({
+          description: "Add idea failed:",
+          type: "error",
+        });
       }
     },
     [prompts, setPrompts],
@@ -327,8 +401,16 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         if (!prompt) return;
         const updated = await updatePrompts({ ...prompt, text });
         setPrompts((prev) => prev.map((p) => (p.id === id ? updated : p)));
+        toaster.create({
+          description: "Your prompt has been edited successfully",
+          type: "success",
+        });
       } catch (e) {
         console.error("Edit idea failed:", e);
+        toaster.create({
+          description: "Edit idea failed:",
+          type: "error",
+        });
       }
     },
     [prompts, setPrompts],
@@ -341,8 +423,16 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         if (!prompt) return;
         const updated = await updatePrompts({ ...prompt, text });
         setPrompts((prev) => prev.map((p) => (p.id === id ? updated : p)));
+        toaster.create({
+          description: "Your prompt has been edited successfully",
+          type: "success",
+        });
       } catch (e) {
         console.error("Edit prompt failed:", e);
+        toaster.create({
+          description: "Edit prompt failed:",
+          type: "error",
+        });
       }
     },
     [prompts, setPrompts],
@@ -358,8 +448,16 @@ export function useAppHandlers(params: UseAppHandlersParams) {
             .filter((p) => p.id !== id)
             .map((p, index) => ({ ...p, order: index })),
         );
+        toaster.create({
+          description: "Your idea has been deleted successfully",
+          type: "success",
+        });
       } catch (e) {
         console.error("Delete idea failed:", e);
+        toaster.create({
+          description: "Delete idea failed:",
+          type: "error",
+        });
       }
     },
     [setPrompts],
@@ -376,6 +474,10 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         );
       } catch (e) {
         console.error("Delete prompt failed:", e);
+        toaster.create({
+          description: "Delete prompt failed:",
+          type: "error",
+        });
       }
     },
     [setPrompts],
@@ -393,6 +495,10 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         setPrompts(updated);
       } catch (e) {
         console.error("Reorder ideas failed:", e);
+        toaster.create({
+          description: "Reorder ideas failed:",
+          type: "error",
+        });
       }
     },
     [setPrompts],
@@ -409,6 +515,10 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         setPrompts(updated);
       } catch (e) {
         console.error("Reorder prompts failed:", e);
+        toaster.create({
+          description: "Reorder prompts failed:",
+          type: "error",
+        });
       }
     },
     [setPrompts],
@@ -430,6 +540,7 @@ export function useAppHandlers(params: UseAppHandlersParams) {
 
   const handleLogin = useCallback(
     async (email: string, password: string) => {
+      setLoginError?.(null);
       try {
         const { user, token } = await login(email, password);
         setStoredToken(token);
@@ -440,14 +551,17 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         });
         setIsAuthenticated(true);
       } catch (error) {
+        const message = error instanceof Error ? error.message : "Login failed";
         console.error("Login error:", error);
+        setLoginError?.(message);
       }
     },
-    [setUserInfo, setIsAuthenticated],
+    [setUserInfo, setIsAuthenticated, setLoginError],
   );
 
   const handleRegister = useCallback(
     async (name: string, email: string, password: string) => {
+      setRegisterError?.(null);
       try {
         const { user, token } = await register(name, email, password);
         setStoredToken(token);
@@ -458,10 +572,13 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         });
         setIsAuthenticated(true);
       } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Registration failed";
         console.error("Register error:", error);
+        setRegisterError?.(message);
       }
     },
-    [setUserInfo, setIsAuthenticated],
+    [setUserInfo, setIsAuthenticated, setRegisterError],
   );
 
   const handleLogout = useCallback(() => {
@@ -478,8 +595,16 @@ export function useAppHandlers(params: UseAppHandlersParams) {
           name: newName,
         });
         setUserInfo((prev) => ({ ...prev, name: updated.name }));
+        toaster.create({
+          description: "Your name has been updated successfully",
+          type: "success",
+        });
       } catch (error) {
         console.error("Update name error:", error);
+        toaster.create({
+          description: "Update name failed",
+          type: "error",
+        });
       }
     },
     [setUserInfo],
@@ -492,8 +617,16 @@ export function useAppHandlers(params: UseAppHandlersParams) {
           email: newEmail,
         });
         setUserInfo((prev) => ({ ...prev, email: updated.email }));
+        toaster.create({
+          description: "Your email has been updated successfully",
+          type: "success",
+        });
       } catch (error) {
         console.error("Update email error:", error);
+        toaster.create({
+          description: "Update email failed",
+          type: "error",
+        });
       }
     },
     [setUserInfo],
@@ -503,9 +636,16 @@ export function useAppHandlers(params: UseAppHandlersParams) {
     async (currentPassword: string, newPassword: string): Promise<void> => {
       try {
         await updatePassword({ currentPassword, newPassword });
-        // Password update successful - no need to update userInfo
+        toaster.create({
+          description: "Your password has been updated successfully",
+          type: "success",
+        });
       } catch (error) {
         console.error("Update password error:", error);
+        toaster.create({
+          description: "Update password failed",
+          type: "error",
+        });
         throw error; // Re-throw to let the UI handle the error
       }
     },
@@ -513,31 +653,24 @@ export function useAppHandlers(params: UseAppHandlersParams) {
   );
 
   const handleUpdateProfilePicture = useCallback(
-    async (fileOrFilename: File | string) => {
+    async (filename: string) => {
       try {
-        let pictureId: string;
-        
-        if (fileOrFilename instanceof File) {
-          // Upload the file and get the picture ID
-          const result = await uploadProfilePicture(fileOrFilename);
-          pictureId = result.pictureId;
-        } else {
-          // It's a predefined picture filename (e.g. "1.png")
-          pictureId = fileOrFilename;
-        }
-        
-        // Update profile with the new picture ID
-        const updated = await updateProfile({ profilePicture: pictureId });
+        // Only predefined pictures (e.g. "1.png", "2.png", etc.)
+        const updated = await updateProfile({ profilePicture: filename });
         setUserInfo((prev) => ({
           ...prev,
           profilePicture: updated.profilePicture || null,
         }));
       } catch (error) {
         console.error("Update profile picture error:", error);
+        toaster.create({
+          description: "Update profile picture failed",
+          type: "error",
+        });
         throw error;
       }
     },
-    [setUserInfo]
+    [setUserInfo],
   );
 
   const handleRemoveProfilePicture = useCallback(async () => {
@@ -551,6 +684,10 @@ export function useAppHandlers(params: UseAppHandlersParams) {
       }));
     } catch (error) {
       console.error("Remove profile picture error:", error);
+      toaster.create({
+        description: "Remove profile picture failed",
+        type: "error",
+      });
     }
   }, [setUserInfo]);
 
@@ -561,6 +698,11 @@ export function useAppHandlers(params: UseAppHandlersParams) {
         setSettings((prev) => ({ ...prev, darkMode: value }));
       } catch (e) {
         console.error("Update settings error:", e);
+        toaster.create({
+          description: "Update settings error",
+          type: "error",
+        });
+        
       }
     },
     [settings, setSettings],
